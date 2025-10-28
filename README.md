@@ -9,12 +9,12 @@ DLPrimitves itself is tested on following devies:
 
 - AMD rx 6600XT with ROCM drivers, rx560 16cu with AMDGPU-pro drivers
 - Nvidia: GTX 960
-- Intel:  HD 530, UHD 770, Arc A380
+- Intel:  HD 530, UHD 630/770, Arc A380
 
 # Use     
 1. set up environment
 ```shell
-conda create torch_cpu -n python=3.12
+conda create -n torch_cpu  python=3.12
 conda activate torch_cpu
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
 ```
