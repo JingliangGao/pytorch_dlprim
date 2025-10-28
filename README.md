@@ -1,6 +1,6 @@
 # Pytorch based on OpenCL backend
 
-DLPrimitives-OpenCL out of tree backend for pytorch, more details can be found [here](https://github.com/JingliangGao/pytorch_dlprim/tree/dev-opencl).
+DLPrimitives-OpenCL out of tree backend for pytorch, more details can be found [here](https://github.com/artyom-beilis/pytorch_dlprim).
 
 
 # Tested Devices
