@@ -8,7 +8,7 @@ if [ -d build ]; then
     rm -rf build
 fi
 mkdir build
-
+ 
 if [ -d dl_install ]; then
     rm -rf dl_install
 fi
@@ -29,6 +29,5 @@ make -j4
 make install
 
 # write into bashrc
-grep -qxF 'export CPLUS_INCLUDE_PATH=$CONDA_PREFIX/include/python3.12:$CPLUS_INCLUDE_PATH' ~/.bashrc || echo 'export CPLUS_INCLUDE_PATH=$CONDA_PREFIX/include/python3.12:$CPLUS_INCLUDE_PATH' >> ~/.bashrc
-grep -qxF 'export PYTHONPATH='"$PROJECT_DIR"'/dl_install/python:$PYTHONPATH' ~/.bashrc || echo 'export PYTHONPATH='"$PROJECT_DIR"'/dl_install/python:$PYTHONPATH' >> ~/.bashrc
-source ~/.bashrc
+export CPLUS_INCLUDE_PATH=${CONDA_PREFIX}/include/python3.12:$CPLUS_INCLUDE_PATH
+export PYTHONPATH=${PROJECT_DIR}/dl_install/python:$PYTHONPATH

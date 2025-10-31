@@ -1,6 +1,6 @@
 # Pytorch based on OpenCL backend
 
-DLPrimitives-OpenCL out of tree backend for pytorch, more details can be found [here](https://github.com/artyom-beilis/pytorch_dlprim).
+DLPrimitives-OpenCL out of tree backend for PyTorch, more details can be found [here](https://github.com/artyom-beilis/pytorch_dlprim).
 
 
 # Tested Devices
@@ -16,7 +16,7 @@ DLPrimitves itself is tested on following devies:
 ```shell
 conda create -n torch_cpu  python=3.12
 conda activate torch_cpu
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+pip install torch torchvision  --index-url https://download.pytorch.org/whl/cpu
 ```
 
 2. build project
