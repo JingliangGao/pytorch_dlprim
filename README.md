@@ -7,9 +7,10 @@ DLPrimitives-OpenCL out of tree backend for PyTorch, more details can be found [
 
 DLPrimitves itself is tested on following devies: 
 
-- AMD rx 6600XT with ROCM drivers, rx560 16cu with AMDGPU-pro drivers
-- Nvidia: GTX 960
-- Intel:  HD 530, UHD 630/770, Arc A380
+- AMD: rx 6600XT/rx560, 
+- Nvidia: GTX 960, A100/A5000, RTX 3060
+- Intel:  HD 530/8570, UHD 630/770, Arc A380
+- Glenfly: Arise 2030
 
 # Use     
 1. set up environment
@@ -26,6 +27,6 @@ chmod +x build-for-debug.sh && ./build-for-debug.sh
 
 3. run example
 ```python
-python3 mnist.py --device ocl:0
+python3 examples/mnist.py
 ```
 
