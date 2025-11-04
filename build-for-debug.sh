@@ -28,6 +28,6 @@ cmake -DCMAKE_PREFIX_PATH=${TorchDir}/torch/share/cmake/Torch \
 make -j4
 make install
 
-# write into bashrc
+# set temporary variable
 export CPLUS_INCLUDE_PATH=${CONDA_PREFIX}/include/python3.12:$CPLUS_INCLUDE_PATH
 export PYTHONPATH=${PROJECT_DIR}/dl_install/python:$PYTHONPATH

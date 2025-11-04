@@ -15,6 +15,11 @@ DLPrimitves itself is tested on following devies:
 # Use     
 1. set up environment
 ```shell
+# system environment
+sudo apt update
+sudo apt install -y ocl-icd-opencl-dev opencl-headers
+
+# conda environment
 conda create -n torch_cpu  python=3.12
 conda activate torch_cpu
 pip install torch torchvision  --index-url https://download.pytorch.org/whl/cpu
