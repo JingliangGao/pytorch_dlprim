@@ -11,6 +11,15 @@
 #include <mutex>
 #include <cstdint>
 #include <list>
+#include <fmt/format.h>
+#ifdef _WIN32
+#include <windows.h>
+#elif defined(__linux__)
+#include <unistd.h>
+#include <sys/syscall.h>
+#endif
+#include <thread>
+#include <functional>
 
 namespace ptdlprim {
 

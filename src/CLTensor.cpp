@@ -6,6 +6,26 @@
 
 
 namespace ptdlprim {
+
+    int32_t getProcessId() {
+    #ifdef _WIN32
+        return static_cast<int32_t>(GetCurrentProcessId());
+    #else
+        return static_cast<int32_t>(getpid());
+    #endif
+    }
+
+    int32_t getThreadId() {
+    #ifdef _WIN32
+        return static_cast<int32_t>(GetCurrentThreadId());
+    #elif defined(__linux__)
+        return static_cast<int32_t>(syscall(SYS_gettid));
+    #else
+        // fallback: use C++ thread id hash
+        return std::hash<std::thread::id>{}(std::this_thread::get_id());
+    #endif
+    }
+
     std::uint64_t CLCache::round(uint64_t v)
     {
         v--;
@@ -106,15 +126,26 @@ namespace ptdlprim {
             return;
         }
         std::ofstream log(output);
-        log << "section,kernel,start (ms),end (ms),duraion(ms)\n";
-        double point0 = -1.0;
+        std::string json_content;
+        std::string op_name = "Unknown";
+        int32_t _pid = 0;
+        int32_t _tid = 0;
+        uint64_t end_ns  = 0; 
+        uint64_t start_ns = 0;
+        uint64_t during_ns = 0;
+        log << "[";
         for(auto &d : timing->events()) {
             try {
-                auto end_ms   = d->event.getProfilingInfo<CL_PROFILING_COMMAND_END>() * 1e-6;
-                auto start_ms = d->event.getProfilingInfo<CL_PROFILING_COMMAND_START>() * 1e-6;
-                if(point0 == -1)
-                    point0 = start_ms;
-                double time_ms = (end_ms - start_ms);
+                /* get startTime(ns), endTime(ns) */
+                end_ns  = d->event.getProfilingInfo<CL_PROFILING_COMMAND_END>();
+                start_ns = d->event.getProfilingInfo<CL_PROFILING_COMMAND_START>();
+                during_ns =  end_ns - start_ns;
+                
+                /* get pid, tid */
+                _pid = 0;
+                _tid = getThreadId();
+
+                /* get operator name */
                 int s = d->section;
                 std::stack<char const *> sections;
                 while(s!=-1) {
@@ -122,21 +153,60 @@ namespace ptdlprim {
                     sections.push(sec.name);
                     s=sec.parent;
                 }
+                op_name = "";
                 while(!sections.empty()) {
-                    log << sections.top();
+                    op_name = op_name + sections.top();
                     sections.pop();
-                    if(!sections.empty())
-                        log<<":";
+                    if(!sections.empty()) {
+                        op_name = op_name + ":";
+                    }
                 }
-                log<<"," << d->name;
-                if(d->index != -1)
-                     log << '[' << d->index << ']';
-                log << "," << (start_ms-point0)<<","<<(end_ms-point0) << ","  << time_ms << "\n";
+
+                json_content = fmt::format(R"JSON(
+                {{
+                  "ph": "X", "cat": "kernel_event", "name": "{}", "pid": {}, "tid": {},
+                  "ts": {}.{:03}, "dur": {}.{:03},
+                  "args": {{
+                    "op name": "{}"
+                  }}
+                }},)JSON",
+                      d->name, _pid, _tid,
+                      start_ns/1000, start_ns %1000, during_ns/1000, during_ns %1000,
+                      op_name);
+                log << json_content;
+
             }
             catch(cl::Error const &e) {
-                log << "Failed for " << d->name << " " << e.what() << e.err() << std::endl;
-            }
+                std::cout << "[ERROR] Failed for " << d->name << " " << e.what() << e.err() << std::endl;
+                continue;
+            }            
         }
+
+        /* end flag */
+        json_content = fmt::format(R"JSON(
+           {{
+              "name": "process_name", "ph": "M", "ts": {}.{:03}, "pid": 0, "tid": 72654,
+              "args": {{
+                "name": "Hardware"
+              }}
+            }},
+            {{
+              "name": "process_labels", "ph": "M", "ts": {}.{:03}, "pid": 0, "tid": 72654,
+              "args": {{
+                "labels": "Kernel"
+              }}
+            }},
+            {{
+              "name": "process_sort_index", "ph": "M", "ts": {}.{:03}, "pid": 0, "tid": 72654,
+              "args": {{
+                "sort_index": 999
+              }}
+            }})JSON",
+                start_ns/1000, start_ns%1000, 
+                start_ns/1000, start_ns%1000, 
+                start_ns/1000, start_ns%1000);
+        log << json_content;
+        log << "]";
     }
     void CLContextManager::start_profiling(int device)
     {

@@ -1,8 +1,21 @@
 cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
 project(dlprim_backend)
-# find_package(PythonLibs 3 REQUIRED)
 find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
 find_package(Torch 1.13 REQUIRED)
+find_package(fmt REQUIRED)
+
+# find fmt library
+if(fmt_FOUND)
+    message(STATUS "fmt library found!")
+    get_target_property(FMT_INCLUDE_DIRS fmt::fmt INTERFACE_INCLUDE_DIRECTORIES)
+    get_target_property(FMT_LIBS fmt::fmt LOCATION)
+
+    message(STATUS "fmt include dirs: ${FMT_INCLUDE_DIRS}")
+    message(STATUS "fmt library location: ${FMT_LIBS}")
+else()
+    message(FATAL_ERROR "fmt library not found!")
+endif()
+
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 option(BUILD_CORE_ONLY "Core Build" ON)
@@ -40,7 +53,7 @@ add_library(pt_ocl SHARED
 target_compile_features(pt_ocl PRIVATE cxx_std_17)
 
 # Link against LibTorch
-target_link_libraries(pt_ocl ${TORCH_LIBRARIES} ${OCL_LIB} dlprim_core)
+target_link_libraries(pt_ocl PRIVATE ${TORCH_LIBRARIES} ${OCL_LIB} dlprim_core fmt::fmt-header-only)
 if(WIN32)
     target_link_libraries(pt_ocl ${PYTHON_LIBRARIES})
 endif()
@@ -56,8 +69,6 @@ else()
 endif()
 
 	
-
-
 foreach(PYNAME __init__.py)
     configure_file(${CMAKE_CURRENT_SOURCE_DIR}/python/pytorch_ocl/${PYNAME} "${CMAKE_BINARY_DIR}/pytorch_ocl/${PYNAME}" COPYONLY)
     install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/python/pytorch_ocl/${PYNAME} DESTINATION python/pytorch_ocl)
