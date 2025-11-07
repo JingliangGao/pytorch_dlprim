@@ -5,7 +5,7 @@ DLPrimitives-OpenCL out of tree backend for PyTorch, more details can be found [
 
 # Tested Devices
 
-DLPrimitves itself is tested on following devies: 
+DLPrimitves itself is tested on following devices: 
 
 - [Nvidia](https://www.nvidia.cn/): GTX 960, A100/A5000, RTX 3060
 - [AMD](https://www.amd.com/zh-cn.html): rx 6600XT/rx560, 
@@ -21,9 +21,8 @@ DLPrimitves itself is tested on following devies:
 # system environment
 sudo apt update
 sudo apt install -y ocl-icd-opencl-dev opencl-headers
-sudo mkdir -p /usr/local/include/CL && sudo mv tools/opencl.hpp /usr/local/include/CL/
+sudo mkdir -p /usr/local/include/CL && sudo cp tools/opencl.hpp /usr/local/include/CL/
 sudo apt install -y libfmt-dev
-
 
 # conda environment
 conda create -n torch_cpu  python=3.12
