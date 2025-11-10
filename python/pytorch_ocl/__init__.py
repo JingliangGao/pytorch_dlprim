@@ -1,5 +1,8 @@
 import torch
 from .pt_ocl import *
+from pathlib import Path
+import os, shutil
+import json
 
 def _device_index(device):
     if isinstance(device, int):
@@ -13,21 +16,73 @@ def _device_index(device):
     return -1
 
 
+
+def merge_json_files(folder, remove_cache=False):
+    json_files = [f for f in os.listdir(folder) if f.endswith(".json")]
+    if len(json_files) != 2:
+        raise RuntimeError(f"[ERROR] Can not find correct JSON file in {folder}, but find : {json_files} .")
+
+    # check JSON file if exist
+    kylin_file = None
+    torch_file = None
+    for f in json_files:
+        if f == "kylin.TEMP1174003943.pt.trace.json":
+            kylin_file = os.path.join(folder, f)
+        else:
+            torch_file = os.path.join(folder, f)
+    if not kylin_file or not torch_file:
+        raise RuntimeError("[ERROR] Can not find kylin or torch JSON file .")
+
+    # read JSON context
+    with open(kylin_file, "r", encoding="utf-8") as f:
+        kylin_data = json.load(f)
+    with open(torch_file, "r", encoding="utf-8") as f:
+        torch_data = json.load(f)
+
+    # merge JSON context
+    torch_traceEvents = torch_data["traceEvents"]
+    torch_data["traceEvents"] = torch_traceEvents + kylin_data
+
+    # write into file
+    output_file = torch_file.replace(".pt.trace.json", ".merged.pt.trace.json")
+    with open(output_file, "w", encoding="utf-8") as f:
+        json.dump(torch_data, f, ensure_ascii=False, indent=4)
+
+    # remove cache
+    if (remove_cache):
+        os.remove(kylin_file)
+        os.remove(torch_file)
+
 class _OCL:
     class profile:
         """ Enables profiling for a ocl device and saves result log"""
-        def __init__(self,device,path = None):
+        def __init__(self,device, path = None):
             """ if path is not None profiling is enabled and result is saved in csv format to path"""
             self._device_id = _device_index(device)
             self._path = path
+            self.prof = torch.profiler.profile(
+                activities=[torch.profiler.ProfilerActivity.CPU],
+                on_trace_ready=torch.profiler.tensorboard_trace_handler(self._path),
+                record_shapes=True,
+                profile_memory=True,
+                with_modules=True,
+                with_stack=True)
 
         def __enter__(self):
             if self._path is not None:
+                # remove old profile folder 
+                if os.path.isdir(self._path):
+                    shutil.rmtree(self._path)
+                os.makedirs(self._path)
+                self.prof.start()
                 impl_start_profiling(self._device_id)
         
         def __exit__(self, type, value, traceback):
             if self._path is not None:
-                impl_stop_profiling(self._device_id,self._path)
+                fullpath = str(Path(self._path) / "kylin.TEMP1174003943.pt.trace.json")
+                impl_stop_profiling(self._device_id, fullpath)
+                self.prof.stop()
+                merge_json_files(self._path)
 
     def enable_profiling(device):
         impl_enable_profiling(_device_index(device))

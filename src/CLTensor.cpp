@@ -26,6 +26,21 @@ namespace ptdlprim {
     #endif
     }
 
+
+    ChromeTraceBaseTime& ChromeTraceBaseTime::singleton() {
+      static ChromeTraceBaseTime instance;
+      return instance;
+    }
+
+    inline int64_t transToRelativeTime(int64_t time) {
+      int64_t res = time - ChromeTraceBaseTime::singleton().get();
+
+      if (res < 0) {
+        return 0;
+      }
+      return res;
+    }
+
     std::uint64_t CLCache::round(uint64_t v)
     {
         v--;
@@ -122,6 +137,7 @@ namespace ptdlprim {
         ExecGuard::set_profiling_context(nullptr);
         std::shared_ptr<dlprim::TimingData> timing = data.timing;
         data.queue.enable_timing(nullptr);
+
         if(output.empty()) {
             return;
         }
@@ -130,16 +146,20 @@ namespace ptdlprim {
         std::string op_name = "Unknown";
         int32_t _pid = 0;
         int32_t _tid = 0;
-        uint64_t end_ns  = 0; 
-        uint64_t start_ns = 0;
-        uint64_t during_ns = 0;
+        int64_t end_ns  = 0; 
+        int64_t start_ns = 0;
+        int64_t during_ns = 0;
+
         log << "[";
         for(auto &d : timing->events()) {
             try {
                 /* get startTime(ns), endTime(ns) */
-                end_ns  = d->event.getProfilingInfo<CL_PROFILING_COMMAND_END>();
-                start_ns = d->event.getProfilingInfo<CL_PROFILING_COMMAND_START>();
-                during_ns =  end_ns - start_ns;
+                auto raw_start_ns = d->event.getProfilingInfo<CL_PROFILING_COMMAND_START>();
+                auto raw_end_ns  = d->event.getProfilingInfo<CL_PROFILING_COMMAND_END>();
+                
+                start_ns = transToRelativeTime((int64_t)raw_start_ns + data.gpu_to_cpu_offset_ns);
+                end_ns = transToRelativeTime((int64_t)raw_end_ns + data.gpu_to_cpu_offset_ns);
+                during_ns = end_ns - start_ns;
                 
                 /* get pid, tid */
                 _pid = 0;
@@ -199,15 +219,17 @@ namespace ptdlprim {
             {{
               "name": "process_sort_index", "ph": "M", "ts": {}.{:03}, "pid": 0, "tid": 72654,
               "args": {{
-                "sort_index": 999
+                "sort_index": {}
               }}
             }})JSON",
                 start_ns/1000, start_ns%1000, 
                 start_ns/1000, start_ns%1000, 
-                start_ns/1000, start_ns%1000);
+                start_ns/1000, start_ns%1000,
+                getProcessId()+1);
         log << json_content;
         log << "]";
     }
+    
     void CLContextManager::start_profiling(int device)
     {
         auto &data = instance().data(device);
@@ -217,6 +239,16 @@ namespace ptdlprim {
         data.queue.finish();
         data.timing.reset(new dlprim::TimingData());
         data.queue.enable_timing(data.timing);
+
+        /* measure Device <-> CPU timing distance */
+        cl::Event ev;
+        data.queue.queue().enqueueMarkerWithWaitList(nullptr, &ev);
+        data.queue.finish();
+        auto gpu_time_ns = ev.getProfilingInfo<CL_PROFILING_COMMAND_END>();
+        auto cpu_time_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
+            std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+        data.gpu_to_cpu_offset_ns = cpu_time_ns - static_cast<int64_t>(gpu_time_ns);
+
         ExecGuard::set_profiling_context(&data.queue);
     }
 } // namespace
