@@ -59,6 +59,8 @@ def train(args, model, device, train_loader, optimizer, epoch,profile):
             return loss.item()
 
         if profile and epoch == 1 and batch_idx == 5:
+            print(f"device : {device}, type : {type(device)}" )
+            print(f"profile : {profile}, type : {type(profile)}" )
             with torch.ocl.profile(device,profile):
                 loss = single_run(data,target)
         else:
@@ -101,7 +103,7 @@ def main():
                         help='input batch size for training (default: 64)')
     parser.add_argument('--test-batch-size', type=int, default=1000, metavar='N',
                         help='input batch size for testing (default: 1000)')
-    parser.add_argument('--epochs', type=int, default=5, metavar='N',
+    parser.add_argument('--epochs', type=int, default=2, metavar='N',
                         help='number of epochs to train (default: 14)')
     parser.add_argument('--lr', type=float, default=0.001, metavar='LR',
                         help='learning rate (default: 1.0)')
@@ -109,8 +111,8 @@ def main():
                         help='Learning rate step gamma (default: 0.7)')
     parser.add_argument('--no-cuda', action='store_true', default=False,
                         help='disables CUDA training')
-    parser.add_argument('--profile',type=str,default=None,
-                        help='Save profiling log for OCL to file')
+    parser.add_argument('--profile', type=str, default=None,
+                        help='Path to save profiling data')
     parser.add_argument('--dry-run', action='store_true', default=False,
                         help='quickly check a single pass')
     parser.add_argument('--seed', type=int, default=1, metavar='S',
@@ -173,8 +175,8 @@ def main():
 
     scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
     for epoch in range(1, args.epochs + 1):
-        train(args, model, device, train_loader, optimizer, epoch,args.profile)
-        test(model, device, test_loader)
+        train(args, model, device, train_loader, optimizer, epoch, args.profile)
+        # test(model, device, test_loader)
         scheduler.step()
 
     if args.save_model:

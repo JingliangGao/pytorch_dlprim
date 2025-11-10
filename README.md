@@ -3,7 +3,7 @@
 DLPrimitives-OpenCL out of tree backend for PyTorch, more details can be found [here](https://github.com/artyom-beilis/pytorch_dlprim).
 
 
-# Tested Devices
+## Tested Devices
 
 DLPrimitves itself is tested on following devices: 
 
@@ -15,7 +15,7 @@ DLPrimitves itself is tested on following devices:
 - [ZhaoXin](https://www.zhaoxin.com/): ZX C-1190
 
 
-# Use     
+## Build Project     
 1. set up environment
 ```shell
 # system environment
@@ -35,8 +35,15 @@ pip install torch torchvision  --index-url https://download.pytorch.org/whl/cpu
 chmod +x build-for-debug.sh && ./build-for-debug.sh
 ```
 
-3. run example
-```python
+## Examples
+1. train a mnist net
+```shell
 python3 examples/python/train_mnist.py
+```
+
+2. profile a mnist net
+
+```shell
+python3 examples/python/train_mnist.py --profile ./profile_log   # './profile_log' is the directory to save data
 ```
 

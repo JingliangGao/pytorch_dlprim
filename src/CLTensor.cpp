@@ -146,6 +146,7 @@ namespace ptdlprim {
         std::string op_name = "Unknown";
         int32_t _pid = 0;
         int32_t _tid = 0;
+        int32_t device_index = 0;
         int64_t end_ns  = 0; 
         int64_t start_ns = 0;
         int64_t during_ns = 0;
@@ -162,7 +163,7 @@ namespace ptdlprim {
                 during_ns = end_ns - start_ns;
                 
                 /* get pid, tid */
-                _pid = 0;
+                _pid = device_index;
                 _tid = getThreadId();
 
                 /* get operator name */
@@ -184,15 +185,16 @@ namespace ptdlprim {
 
                 json_content = fmt::format(R"JSON(
                 {{
-                  "ph": "X", "cat": "kernel_event", "name": "{}", "pid": {}, "tid": {},
+                  "ph": "X", "cat": "kernel", "name": "{}", "pid": {}, "tid": {},
                   "ts": {}.{:03}, "dur": {}.{:03},
                   "args": {{
-                    "op name": "{}"
+                    "device": {},
+                    "op name": "{}"                    
                   }}
                 }},)JSON",
                       d->name, _pid, _tid,
                       start_ns/1000, start_ns %1000, during_ns/1000, during_ns %1000,
-                      op_name);
+                      device_index, op_name);
                 log << json_content;
 
             }
@@ -202,18 +204,20 @@ namespace ptdlprim {
             }            
         }
 
+        std::string device_str = "GPU "+ std::to_string(device_index);
+
         /* end flag */
         json_content = fmt::format(R"JSON(
            {{
               "name": "process_name", "ph": "M", "ts": {}.{:03}, "pid": 0, "tid": 72654,
               "args": {{
-                "name": "Hardware"
+                "name": "python3"
               }}
             }},
             {{
               "name": "process_labels", "ph": "M", "ts": {}.{:03}, "pid": 0, "tid": 72654,
               "args": {{
-                "labels": "Kernel"
+                "labels": "{}"
               }}
             }},
             {{
@@ -224,7 +228,8 @@ namespace ptdlprim {
             }})JSON",
                 start_ns/1000, start_ns%1000, 
                 start_ns/1000, start_ns%1000, 
-                start_ns/1000, start_ns%1000,
+                device_str,
+                start_ns/1000, start_ns%1000,                
                 getProcessId()+1);
         log << json_content;
         log << "]";
