@@ -9,6 +9,7 @@ if(fmt_FOUND)
     message(STATUS "fmt library found!")
     get_target_property(FMT_INCLUDE_DIRS fmt::fmt INTERFACE_INCLUDE_DIRECTORIES)
     get_target_property(FMT_LIBS fmt::fmt LOCATION)
+   
 
     message(STATUS "fmt include dirs: ${FMT_INCLUDE_DIRS}")
     message(STATUS "fmt library location: ${FMT_LIBS}")
@@ -53,7 +54,9 @@ add_library(pt_ocl SHARED
 target_compile_features(pt_ocl PRIVATE cxx_std_17)
 
 # Link against LibTorch
-target_link_libraries(pt_ocl PRIVATE ${TORCH_LIBRARIES} ${OCL_LIB} dlprim_core fmt::fmt-header-only)
+target_include_directories(pt_ocl PRIVATE ${FMT_INCLUDE_DIRS})
+target_compile_definitions(pt_ocl PRIVATE FMT_HEADER_ONLY)
+target_link_libraries(pt_ocl PRIVATE ${TORCH_LIBRARIES} ${OCL_LIB} dlprim_core)
 if(WIN32)
     target_link_libraries(pt_ocl ${PYTHON_LIBRARIES})
 endif()
@@ -79,7 +82,7 @@ install(TARGETS pt_ocl
 		RUNTIME DESTINATION python/pytorch_ocl
 	)
 
-option(BUILD_EXAMPLES "Build example programs" ON)
+option(BUILD_EXAMPLES "Build example programs" OFF)
 if(BUILD_EXAMPLES)
     add_subdirectory(examples/cplus)
 endif()

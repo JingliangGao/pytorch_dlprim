@@ -27,7 +27,7 @@ cmake -DCMAKE_PREFIX_PATH=${TorchDir}/torch/share/cmake/Torch \
       -DPython3_ROOT_DIR=$CONDA_PREFIX \
       -DPython3_FIND_STRATEGY=LOCATION \
       -DPython3_FIND_REGISTRY=NEVER ..
-make -j8
+make -j6
 make install
 
 # set temporary variable
