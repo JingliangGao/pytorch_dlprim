@@ -1,0 +1,68 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 21,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "linux-base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "CMAKE_POSITION_INDEPENDENT_CODE": "ON",
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/dl_install",
+        "OCL_PATH": "/usr/include",
+
+        "Torch_DIR": "/usr/local/lib/python3.10/dist-packages/torch/share/cmake/Torch",
+
+        "Python3_EXECUTABLE": "/usr/bin/python3.10",
+        "Python3_ROOT_DIR": "/usr",
+        "Python3_INCLUDE_DIRS": "/usr/include/python3.10",
+        "Python3_LIBRARIES": "/usr/lib/x86_64-linux-gnu/libpython3.10.so",
+
+        "BUILD_CORE_ONLY": "ON",
+        "DLPRIM_STATIC_BUILD": "ON"
+      }
+    },
+    {
+      "name": "debug",
+      "inherits": "linux-base",
+      "displayName": "Debug Build (System Python)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_CXX_FLAGS_DEBUG": "-g -O0 -Wall -fPIC"
+      }
+    },
+    {
+      "name": "release",
+      "inherits": "linux-base",
+      "displayName": "Release Build (System Python)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG -fPIC"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "debug",
+      "configurePreset": "debug",
+      "description": "Build with debug info"
+    },
+    {
+      "name": "release",
+      "configurePreset": "release",
+      "description": "Optimized release build"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "debug",
+      "configurePreset": "debug"
+    }
+  ]
+}

@@ -23,13 +23,13 @@ option(DLPRIM_STATIC_BUILD "Build static version only" ON)
 
 add_subdirectory(dlprimitives)
 include_directories("${OCL_PATH}")
-include_directories(${PYTHON_INCLUDE_DIR})
+include_directories(${Python3_INCLUDE_DIRS})
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/dlprimitives)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/dlprimitives/include)
 
 message("  Pytorch libraries ${TORCH_LIBRARIES}")
 message("  Python libraries ${PYTHON_LIBRARIES}")
-message("  Python include ${PYTHON_INCLUDE_DIR}")
+message("  Python include ${Python3_INCLUDE_DIRS}")
 
 if(NOT WIN32)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O2 -Wall")
