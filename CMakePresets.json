@@ -25,7 +25,8 @@
         "Python3_LIBRARIES": "/usr/lib/x86_64-linux-gnu/libpython3.10.so",
 
         "BUILD_CORE_ONLY": "ON",
-        "DLPRIM_STATIC_BUILD": "ON"
+        "DLPRIM_STATIC_BUILD": "ON",
+        "BUILD_EXAMPLES=ON": "ON"
       }
     },
     {

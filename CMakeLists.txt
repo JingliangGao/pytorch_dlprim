@@ -79,3 +79,8 @@ install(TARGETS pt_ocl
 		RUNTIME DESTINATION python/pytorch_ocl
 	)
 
+option(BUILD_EXAMPLES "Build example programs" ON)
+if(BUILD_EXAMPLES)
+    add_subdirectory(examples/cplus)
+endif()
+
