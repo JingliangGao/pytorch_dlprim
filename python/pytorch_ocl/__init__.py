@@ -1,5 +1,5 @@
 import torch
-from .pt_ocl import *
+from .libpt_ocl import *
 from pathlib import Path
 import os, shutil
 import json

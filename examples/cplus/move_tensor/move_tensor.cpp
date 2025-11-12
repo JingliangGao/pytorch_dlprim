@@ -3,7 +3,7 @@
 #include <torch/torch.h>
 
 int main() {
-    const char* lib_path = "/home/kylin/gjl/project/pytorch_dlprim/build/debug/pytorch_ocl/pt_ocl.so";
+    const char* lib_path = "<path-to-libpt_ocl.so>";           // Replace with the actual path
     
     // 打开动态库
     void* handle = dlopen(lib_path, RTLD_LAZY | RTLD_GLOBAL);

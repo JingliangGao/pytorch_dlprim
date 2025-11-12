@@ -25,7 +25,7 @@ foreach(dir ${CHILD_DIRS})
             )
 
             # 链接主库和依赖
-            target_link_libraries(${TARGET_NAME} PRIVATE pt_ocl ${TORCH_LIBRARIES} ${OCL_LIB} fmt::fmt)
+            target_link_libraries(${TARGET_NAME} PRIVATE libpt_ocl ${TORCH_LIBRARIES} ${OCL_LIB} fmt::fmt)
 
             # 设置 C++17
             target_compile_features(${TARGET_NAME} PRIVATE cxx_std_17)

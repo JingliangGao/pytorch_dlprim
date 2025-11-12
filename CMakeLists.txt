@@ -21,7 +21,7 @@ endif()
 # Set some options
 option(BUILD_CORE_ONLY "Core Build" ON)
 option(DLPRIM_STATIC_BUILD "Build static version only" ON)
-option(INSTALL_PYTHON "Create Python bindings" OFF)
+option(ALLOW_PYBIND "Create Python bindings" OFF)
 option(BUILD_EXAMPLES "Build example programs" OFF)
 
 add_subdirectory(third_party/dlprimitives)
@@ -40,8 +40,8 @@ if(NOT WIN32)
 endif()
 
 # Define our library target
-if(INSTALL_PYTHON)
-    add_library(pt_ocl SHARED 
+if(ALLOW_PYBIND)
+    add_library(libpt_ocl SHARED 
             third_party/op-plugin/src/pointwise_ops.cpp
             third_party/op-plugin/src/tensor_ops.cpp
             third_party/op-plugin/src/vision_ops.cpp
@@ -55,7 +55,7 @@ if(INSTALL_PYTHON)
             src/pybind.cpp
             )
 else()
-    add_library(pt_ocl SHARED 
+    add_library(libpt_ocl SHARED 
             third_party/op-plugin/src/pointwise_ops.cpp
             third_party/op-plugin/src/tensor_ops.cpp
             third_party/op-plugin/src/vision_ops.cpp
@@ -69,37 +69,34 @@ else()
             )
 endif()
 
-target_compile_features(pt_ocl PRIVATE cxx_std_17)
+target_compile_features(libpt_ocl PRIVATE cxx_std_17)
 
 # Link against LibTorch
-target_include_directories(pt_ocl PRIVATE ${FMT_INCLUDE_DIRS})
-target_compile_definitions(pt_ocl PRIVATE FMT_HEADER_ONLY)
-target_link_libraries(pt_ocl PRIVATE ${TORCH_LIBRARIES} ${OCL_LIB} dlprim_core)
+target_include_directories(libpt_ocl PRIVATE ${FMT_INCLUDE_DIRS})
+target_compile_definitions(libpt_ocl PRIVATE FMT_HEADER_ONLY)
+target_link_libraries(libpt_ocl PRIVATE ${TORCH_LIBRARIES} ${OCL_LIB} dlprim_core)
 if(WIN32)
-    target_link_libraries(pt_ocl ${PYTHON_LIBRARIES})
+    target_link_libraries(libpt_ocl ${PYTHON_LIBRARIES})
 endif()
-set_target_properties(pt_ocl PROPERTIES PREFIX "" OUTPUT_NAME "pt_ocl")
+set_target_properties(libpt_ocl PROPERTIES PREFIX "" OUTPUT_NAME "libpt_ocl")
 if(NOT WIN32)
-	set_target_properties(pt_ocl PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/pytorch_ocl/")
+	set_target_properties(libpt_ocl PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/pytorch_ocl/")
 else()
-	set_target_properties(pt_ocl PROPERTIES
+	set_target_properties(libpt_ocl PROPERTIES
 		RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/pytorch_ocl/"
 		SUFFIX ".pyd"
 	) 
 endif()
 
 # Install Python bindings
-if(INSTALL_PYTHON)
-    foreach(PYNAME __init__.py)
-        configure_file(${CMAKE_CURRENT_SOURCE_DIR}/python/pytorch_ocl/${PYNAME} "${CMAKE_BINARY_DIR}/pytorch_ocl/${PYNAME}" COPYONLY)
-        install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/python/pytorch_ocl/${PYNAME} DESTINATION python/pytorch_ocl)
-    endforeach()
-
-    install(TARGETS pt_ocl 
-            LIBRARY DESTINATION python/pytorch_ocl
-            RUNTIME DESTINATION python/pytorch_ocl
-        )
-endif()
+foreach(PYNAME __init__.py)
+    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/python/pytorch_ocl/${PYNAME} "${CMAKE_BINARY_DIR}/pytorch_ocl/${PYNAME}" COPYONLY)
+    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/python/pytorch_ocl/${PYNAME} DESTINATION python/pytorch_ocl)
+endforeach()
+install(TARGETS libpt_ocl 
+        LIBRARY DESTINATION python/pytorch_ocl
+        RUNTIME DESTINATION python/pytorch_ocl
+    )
 
 # Add C++ examples
 if(BUILD_EXAMPLES)

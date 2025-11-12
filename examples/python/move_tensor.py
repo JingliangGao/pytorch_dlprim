@@ -5,10 +5,10 @@ import os
 python_path_env = os.environ.get("PYTHONPATH", "")
 paths = python_path_env.split(":")
 for p in paths:
-    pt_ocl_path = os.path.join(p, "pytorch_ocl")
-    if pt_ocl_path and pt_ocl_path not in sys.path: 
-        sys.path.append(pt_ocl_path)
-from pt_ocl import *
+    lib_path = os.path.join(p, "pytorch_ocl")
+    if lib_path and lib_path not in sys.path: 
+        sys.path.append(lib_path)
+from libpt_ocl import *
 
 def _device_index(device):
     if isinstance(device, int):
