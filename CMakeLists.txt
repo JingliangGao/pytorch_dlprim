@@ -4,7 +4,7 @@ find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
 find_package(Torch 1.13 REQUIRED)
 find_package(fmt REQUIRED)
 
-# find fmt library
+# Find fmt library
 if(fmt_FOUND)
     message(STATUS "fmt library found!")
     get_target_property(FMT_INCLUDE_DIRS fmt::fmt INTERFACE_INCLUDE_DIRECTORIES)
@@ -18,9 +18,11 @@ else()
 endif()
 
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
+# Set some options
 option(BUILD_CORE_ONLY "Core Build" ON)
 option(DLPRIM_STATIC_BUILD "Build static version only" ON)
+option(INSTALL_PYTHON "Create Python bindings" OFF)
+option(BUILD_EXAMPLES "Build example programs" OFF)
 
 add_subdirectory(third_party/dlprimitives)
 include_directories("${OCL_PATH}")
@@ -32,24 +34,40 @@ message("  Pytorch libraries ${TORCH_LIBRARIES}")
 message("  Python libraries ${PYTHON_LIBRARIES}")
 message("  Python include ${Python3_INCLUDE_DIRS}")
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 if(NOT WIN32)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O2 -Wall")
 endif()
 
 # Define our library target
-add_library(pt_ocl SHARED 
-        third_party/op-plugin/src/pointwise_ops.cpp
-        third_party/op-plugin/src/tensor_ops.cpp
-        third_party/op-plugin/src/vision_ops.cpp
-        third_party/op-plugin/src/loss_ops.cpp
-        third_party/op-plugin/src/random_ops.cpp
-        third_party/op-plugin/src/norm_ops.cpp
-        src/utils.cpp
-        src/registeration.cpp
-        src/CLTensor.cpp
-        src/guard.cpp
-        src/python_iface.cpp
-        )
+if(INSTALL_PYTHON)
+    add_library(pt_ocl SHARED 
+            third_party/op-plugin/src/pointwise_ops.cpp
+            third_party/op-plugin/src/tensor_ops.cpp
+            third_party/op-plugin/src/vision_ops.cpp
+            third_party/op-plugin/src/loss_ops.cpp
+            third_party/op-plugin/src/random_ops.cpp
+            third_party/op-plugin/src/norm_ops.cpp
+            src/utils.cpp
+            src/registeration.cpp
+            src/CLTensor.cpp
+            src/guard.cpp
+            src/pybind.cpp
+            )
+else()
+    add_library(pt_ocl SHARED 
+            third_party/op-plugin/src/pointwise_ops.cpp
+            third_party/op-plugin/src/tensor_ops.cpp
+            third_party/op-plugin/src/vision_ops.cpp
+            third_party/op-plugin/src/loss_ops.cpp
+            third_party/op-plugin/src/random_ops.cpp
+            third_party/op-plugin/src/norm_ops.cpp
+            src/utils.cpp
+            src/registeration.cpp
+            src/CLTensor.cpp
+            src/guard.cpp
+            )
+endif()
 
 target_compile_features(pt_ocl PRIVATE cxx_std_17)
 
@@ -67,22 +85,23 @@ else()
 	set_target_properties(pt_ocl PROPERTIES
 		RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/pytorch_ocl/"
 		SUFFIX ".pyd"
-	)
-	 
+	) 
 endif()
 
-	
-foreach(PYNAME __init__.py)
-    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/python/pytorch_ocl/${PYNAME} "${CMAKE_BINARY_DIR}/pytorch_ocl/${PYNAME}" COPYONLY)
-    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/python/pytorch_ocl/${PYNAME} DESTINATION python/pytorch_ocl)
-endforeach()
+# Install Python bindings
+if(INSTALL_PYTHON)
+    foreach(PYNAME __init__.py)
+        configure_file(${CMAKE_CURRENT_SOURCE_DIR}/python/pytorch_ocl/${PYNAME} "${CMAKE_BINARY_DIR}/pytorch_ocl/${PYNAME}" COPYONLY)
+        install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/python/pytorch_ocl/${PYNAME} DESTINATION python/pytorch_ocl)
+    endforeach()
 
-install(TARGETS pt_ocl 
-		LIBRARY DESTINATION python/pytorch_ocl
-		RUNTIME DESTINATION python/pytorch_ocl
-	)
+    install(TARGETS pt_ocl 
+            LIBRARY DESTINATION python/pytorch_ocl
+            RUNTIME DESTINATION python/pytorch_ocl
+        )
+endif()
 
-option(BUILD_EXAMPLES "Build example programs" OFF)
+# Add C++ examples
 if(BUILD_EXAMPLES)
     add_subdirectory(examples/cplus)
 endif()
