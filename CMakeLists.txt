@@ -22,12 +22,12 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 option(BUILD_CORE_ONLY "Core Build" ON)
 option(DLPRIM_STATIC_BUILD "Build static version only" ON)
 
-add_subdirectory(dlprimitives)
+add_subdirectory(third_party/dlprimitives)
 include_directories("${OCL_PATH}")
 include_directories(${Python3_INCLUDE_DIRS})
-include_directories(${CMAKE_CURRENT_BINARY_DIR}/dlprimitives)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/dlprimitives/include)
-
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/third_party/dlprimitives)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/dlprimitives/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 message("  Pytorch libraries ${TORCH_LIBRARIES}")
 message("  Python libraries ${PYTHON_LIBRARIES}")
 message("  Python include ${Python3_INCLUDE_DIRS}")
@@ -38,12 +38,12 @@ endif()
 
 # Define our library target
 add_library(pt_ocl SHARED 
-        src/pointwise_ops.cpp
-        src/tensor_ops.cpp
-        src/vision_ops.cpp
-        src/loss_ops.cpp
-        src/random_ops.cpp
-        src/norm_ops.cpp
+        third_party/op-plugin/src/pointwise_ops.cpp
+        third_party/op-plugin/src/tensor_ops.cpp
+        third_party/op-plugin/src/vision_ops.cpp
+        third_party/op-plugin/src/loss_ops.cpp
+        third_party/op-plugin/src/random_ops.cpp
+        third_party/op-plugin/src/norm_ops.cpp
         src/utils.cpp
         src/registeration.cpp
         src/CLTensor.cpp
