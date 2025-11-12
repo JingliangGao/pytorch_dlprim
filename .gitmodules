@@ -1,3 +1,7 @@
 [submodule "third_party/op-plugin"]
 	path = third_party/op-plugin
 	url = https://github.com/JingliangGao/op-plugin.git
+[submodule "third_party/dlprimitives"]
+	path = third_party/dlprimitives
+	url = https://github.com/JingliangGao/op-plugin.git
+	branch = dev-opencl
