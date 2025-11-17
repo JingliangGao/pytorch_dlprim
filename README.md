@@ -32,6 +32,8 @@ pip install torch torchvision  --index-url https://download.pytorch.org/whl/cpu
 
 2. build project
 ```shell
+git clone --recursive https://github.com/JingliangGao/pytorch_dlprim.git
+cd pytorch_dlprim && git checkout dev-opencl
 chmod +x build-for-debug.sh && ./build-for-debug.sh
 ```
 
