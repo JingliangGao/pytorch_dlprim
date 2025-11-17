@@ -10,7 +10,7 @@ import argparse
 # Tokenizer
 # -----------------------------
 # 加载官方 tokenizer.json
-tokenizer = Tokenizer.from_file("/home/kylin/gjl/model/qwen2.5-0.5b-instruct/tokenizer.json")
+tokenizer = Tokenizer.from_file("<tokenizer-json-file>")
 VOCAB_SIZE = tokenizer.get_vocab_size()
 
 def encode(text):
@@ -149,7 +149,7 @@ def main():
     # 加载模型权重
     # -----------------------------
     model = QwenForCausalLM(VOCAB_SIZE, HIDDEN_SIZE, NUM_LAYERS, NUM_HEADS, MAX_SEQ_LEN).to(DEVICE)
-    state_dict = torch.load("/home/kylin/gjl/model/qwen2.5-0.5b-instruct/model.pt", map_location=DEVICE)
+    state_dict = torch.load("<weight-pt-file>", map_location=DEVICE)
     # 打印前 10 个 key，方便调试
     print("Loaded state_dict keys sample:", list(state_dict.keys())[:10])
     model.load_state_dict(state_dict, strict=False)  # strict=False 避免部分键名不匹配
