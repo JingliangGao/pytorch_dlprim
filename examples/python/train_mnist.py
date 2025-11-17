@@ -11,13 +11,19 @@ from pathlib import Path
 
 
 class Net(nn.Module):
-    use_bn = True
-    use_gp = False
+    # NOTE: TorchScript requires module attributes that are accessed in
+    # `forward` to be assigned on `self` inside __init__. Class-level
+    # attributes are not recognized by the JIT, which causes the
+    # "Module 'Net' has no attribute 'use_bn'" error when scripting.
     def __init__(self):
         super(Net, self).__init__()
-        self.conv1 = nn.Conv2d(1, 32, 3, padding=0,bias=not self.use_bn)
+        # instance attributes for JIT compatibility
+        self.use_bn = True
+        self.use_gp = False
+
+        self.conv1 = nn.Conv2d(1, 32, 3, padding=0, bias=not self.use_bn)
         if self.use_bn:
-            self.bn = nn.BatchNorm2d(32);
+            self.bn = nn.BatchNorm2d(32)
         self.conv2 = nn.Conv2d(32, 64, 3, padding=0)
         if self.use_gp:
             self.fc1 = nn.Linear(64, 16)
@@ -174,11 +180,15 @@ def main():
     scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
     for epoch in range(1, args.epochs + 1):
         train(args, model, device, train_loader, optimizer, epoch, args.profile)
-        # test(model, device, test_loader)
+        test(model, device, test_loader)
         scheduler.step()
 
+
     if args.save_model:
-        torch.save(model.to('cpu').state_dict(), "mnist_cnn.pt")
+        torch.save(model.to('cpu').state_dict(), "../data/mnist_cnn.pt")
+        scripted_model = torch.jit.script(model)
+        scripted_model.save("../data/mnist_cnn-scripted.pt")
+        
     
 
 if __name__ == '__main__':

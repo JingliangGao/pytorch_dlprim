@@ -1,11 +1,11 @@
-# Pytorch based on OpenCL backend
+# PyTorch based on OpenCL backend
 
 DLPrimitives-OpenCL out of tree backend for PyTorch, more details can be found [here](https://github.com/artyom-beilis/pytorch_dlprim).
 
 
 ## Tested Devices
 
-DLPrimitves itself is tested on following devices: 
+pytorch_dlprim is tested on following devices: 
 
 - [Nvidia](https://www.nvidia.cn/): GTX 960, A100/A5000, RTX 3060
 - [AMD](https://www.amd.com/zh-cn.html): rx 6600XT/rx560, 
@@ -37,6 +37,7 @@ chmod +x build-for-debug.sh && ./build-for-debug.sh
 
 ## Examples
 1. train a mnist net
+
 ```shell
 python3 examples/python/train_mnist.py
 ```
