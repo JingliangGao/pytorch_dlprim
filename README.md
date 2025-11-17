@@ -18,16 +18,11 @@ pytorch_dlprim is tested on following devices:
 ## Build Project     
 1. set up environment
 ```shell
-# system environment
 sudo apt update
 sudo apt install -y ocl-icd-opencl-dev opencl-headers
 sudo mkdir -p /usr/local/include/CL && sudo cp tools/opencl.hpp /usr/local/include/CL/
 sudo apt install -y libfmt-dev
-
-# conda environment
-conda create -n torch_cpu  python=3.12
-conda activate torch_cpu
-pip install torch torchvision  --index-url https://download.pytorch.org/whl/cpu
+pip install -r requirements.txt
 ```
 
 2. build project

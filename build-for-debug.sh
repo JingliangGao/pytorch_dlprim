@@ -5,32 +5,56 @@ PROJECT_DIR=$(pwd)
 
 # create folder
 build_folder=build_debug
+echo ">> [INFO]: Refresh build folder '${build_folder}' ..."
 if [ -d ${build_folder} ]; then
     rm -rf ${build_folder}
 fi
 mkdir ${build_folder}
- 
-if [ -d dl_install ]; then
-    rm -rf dl_install
+
+install_folder=dl_install
+echo ">> [INFO]: Refresh install folder '${install_folder}' ..."
+if [ -d ${install_folder} ]; then
+    rm -rf ${install_folder}
 fi
-mkdir dl_install
+mkdir ${install_folder}
 
 # build project
 cd ${build_folder}
 TorchDir=$(pip3 show torch | awk '/Location:/ {print $2}')
+PYROOT=$(python3 -c "import sys; print(sys.prefix)")
 PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-export CPLUS_INCLUDE_PATH=$CONDA_PREFIX/include/python${PYVER}:$CPLUS_INCLUDE_PATH
-cmake -DCMAKE_PREFIX_PATH=${TorchDir}/torch/share/cmake/Torch \
-      -DCMAKE_INSTALL_PREFIX=$PROJECT_DIR/dl_install  \
-      -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
-      -DOCL_PATH=/usr/include \
-      -DALLOW_PYBIND=ON \
-      -DPython3_ROOT_DIR=$CONDA_PREFIX \
-      -DPython3_FIND_STRATEGY=LOCATION \
-      -DPython3_FIND_REGISTRY=NEVER ..
+
+if [[ -n "$CONDA_DEFAULT_ENV" ]]; then
+    echo ">> [INFO]: Auto-detect conda environment '$CONDA_DEFAULT_ENV' for cmake ..."
+    export CPLUS_INCLUDE_PATH=${PYROOT}/include/python${PYVER}
+    cmake -DCMAKE_PREFIX_PATH=${TorchDir}/torch/share/cmake/Torch \
+          -DCMAKE_INSTALL_PREFIX=${PROJECT_DIR}/${install_folder} \
+          -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+          -DOCL_PATH=/usr/include \
+          -DALLOW_PYBIND=OFF \
+          -DPython3_ROOT_DIR=${PYROOT} \
+          -DPython3_FIND_STRATEGY=LOCATION \
+          -DPython3_FIND_REGISTRY=NEVER ..
+else
+    echo ">> [INFO]: Auto-detect real environment '$CONDA_DEFAULT_ENV' for cmake ..."
+    export CPLUS_INCLUDE_PATH=$(python3 -c "import sysconfig; print(sysconfig.get_path('include'))")
+    echo ">> [INFO]: Set 'CPLUS_INCLUDE_PATH' path '${CPLUS_INCLUDE_PATH}' ..."
+    cmake -DCMAKE_PREFIX_PATH=${TorchDir}/torch/share/cmake/Torch \
+          -DCMAKE_INSTALL_PREFIX=${PROJECT_DIR}/${install_folder} \
+          -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+          -DOCL_PATH=/usr/include \
+          -DALLOW_PYBIND=OFF \
+          -DPython3_ROOT_DIR=${PYROOT} \
+          -DPython3_FIND_STRATEGY=LOCATION \
+          -DPython3_FIND_REGISTRY=NEVER ..
+fi
+
+echo ">> [INFO]: Start building ..."
 make -j6
+echo ">> [INFO]: Start installing ..."
 make install
 
 # set temporary variable
-export CPLUS_INCLUDE_PATH=${CONDA_PREFIX}/include/python${PYVER}:$CPLUS_INCLUDE_PATH
-export PYTHONPATH=${PROJECT_DIR}/dl_install/python:$PYTHONPATH
+echo ">> [INFO]: Set 'PYTHONPATH' path '${PROJECT_DIR}/${install_folder}/python' ..."
+export PYTHONPATH=${PROJECT_DIR}/${install_folder}/python:$PYTHONPATH
+echo ">> [INFO]: All finished."
