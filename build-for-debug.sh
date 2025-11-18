@@ -31,7 +31,7 @@ if [[ -n "$CONDA_DEFAULT_ENV" ]]; then
           -DCMAKE_INSTALL_PREFIX=${PROJECT_DIR}/${install_folder} \
           -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
           -DOCL_PATH=/usr/include \
-          -DALLOW_PYBIND=OFF \
+          -DALLOW_PYBIND=ON \
           -DPython3_ROOT_DIR=${PYROOT} \
           -DPython3_FIND_STRATEGY=LOCATION \
           -DPython3_FIND_REGISTRY=NEVER ..
@@ -43,7 +43,7 @@ else
           -DCMAKE_INSTALL_PREFIX=${PROJECT_DIR}/${install_folder} \
           -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
           -DOCL_PATH=/usr/include \
-          -DALLOW_PYBIND=OFF \
+          -DALLOW_PYBIND=ON \
           -DPython3_ROOT_DIR=${PYROOT} \
           -DPython3_FIND_STRATEGY=LOCATION \
           -DPython3_FIND_REGISTRY=NEVER ..
