@@ -191,6 +191,28 @@ using c10::DeviceType;
         return ptdlprim::_copy_from(self,dst,false);
     }
 
+    // {"schema": "aten::copy_(Tensor(a!) self, Tensor src, bool non_blocking=False) -> Tensor(a!)", "dispatch": "True", "default": "False"}
+    Tensor & copy_(Tensor & self, const Tensor & src, bool non_blocking=false) {
+        GUARD;
+
+        // If same storage / same tensor, nothing to do
+        if (self.unsafeGetTensorImpl() == src.unsafeGetTensorImpl()) {
+            return self;
+        }
+
+        // If both are zero-sized, nothing to do
+        if (self.numel() == 0 && src.numel() == 0) {
+            return self;
+        }
+
+        // Reuse existing implementation that copies src -> dst
+        // Note: _copy_from defined earlier has signature (src, dst, non_blocking)
+        ptdlprim::_copy_from(src, self, non_blocking);
+
+        return self;
+    }
+
+
     Tensor &fill_(Tensor &self, const c10::Scalar &value)
     {
         GUARD;
@@ -409,16 +431,46 @@ using c10::DeviceType;
         return self;
     }
 
+    /* schema: to.device(Tensor(a) self, Device device, ScalarType dtype, bool non_blocking=False, bool copy=False, MemoryFormat? memory_format=None) -> Tensor(a) */
+    at::Tensor to_device(
+        const at::Tensor & self,
+        c10::Device device,                    
+        c10::ScalarType dtype,                 
+        bool non_blocking,
+        bool copy,
+        c10::optional<c10::MemoryFormat> memory_format)
+    {
+        GUARD;
+
+        // dtype is non-optional and expected to be a valid ScalarType
+        c10::ScalarType target_dtype = dtype;
+
+        // Fast path: same device & dtype and copy==false -> return original
+        if (!copy && self.device() == device && self.scalar_type() == target_dtype) {
+            return self;
+        }
+
+        // Allocate destination with requested device/dtype
+        at::TensorOptions opts = self.options().dtype(target_dtype).device(device);
+        at::Tensor dst = at::empty(self.sizes(), opts);
+
+        // Ensure source is contiguous and of target dtype; your helper expects dst Tensor
+        at::Tensor src_contig = ptdlprim::make_contiguous_as_target_type(self, dst);
+
+        // Use existing copy implementation (handles CPU<->OpenCL, dtype conversion, etc.)
+        ptdlprim::_copy_from(src_contig, dst, non_blocking);
+
+        return dst;
+    }
 
     void fallback(const c10::OperatorHandle& op, torch::jit::Stack* stack)
     {
       TORCH_WARN("The operator '", op.schema().operator_name(), "' is not currently ",
-                 "supported on the ocl backend. Please open an issue at for requesting support "
-                 "https://github.com/artyom-beilis/pytorch_dlprim/issues");
+                 "supported on the ocl backend.");
       native::cpu_fallback(op, stack);
     }
 
-} // namespace dtype
+    } // namespace dtype
 
 TORCH_LIBRARY_IMPL(aten, PrivateUse1, m) {
       m.impl("aten::set_.source_Storage",&ptdlprim::set_source_storage);
@@ -429,12 +481,14 @@ TORCH_LIBRARY_IMPL(aten, PrivateUse1, m) {
       m.impl("aten::view",&ptdlprim::view);
       m.impl("aten::_copy_from",&ptdlprim::_copy_from);
       m.impl("aten::_copy_from_and_resize",&ptdlprim::_copy_from_and_resize);
+      m.impl("aten::copy_", &ptdlprim::copy_);
       m.impl("aten::fill_.Scalar",&ptdlprim::fill_);
       m.impl("aten::zero_",&ptdlprim::zero_);
       m.impl("aten::as_strided",&ptdlprim::as_strided);
       m.impl("aten::_local_scalar_dense",&ptdlprim::_local_scalar_dense);
       m.impl("aten::masked_select",&ptdlprim::masked_select);
       m.impl("aten::resize_",&ptdlprim::resize_);
+    //   m.impl("to.device", &ptdlprim::to_device);
 }
 TORCH_LIBRARY_IMPL(_, PrivateUse1, m) {
       m.fallback(torch::CppFunction::makeFromBoxedFunction<&ptdlprim::fallback>());
