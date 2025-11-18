@@ -1,34 +1,12 @@
-#include <iostream>
 #include <dlfcn.h>
+#include <fstream>
 #include <torch/torch.h>
-#include <torch/script.h> 
+#include <torch/script.h>
+#include <iostream>
+
 
 const char* lib_path = "<path-to-libpt_ocl.so>";
-
-/* create a Mnist net */
-struct Net : torch::nn::Module {
-    torch::nn::Conv2d conv1{nullptr}, conv2{nullptr};
-    torch::nn::Linear fc1{nullptr}, fc2{nullptr};
-
-    Net() {
-        conv1 = register_module("conv1", torch::nn::Conv2d(torch::nn::Conv2dOptions(1, 32, 3).stride(1)));
-        conv2 = register_module("conv2", torch::nn::Conv2d(torch::nn::Conv2dOptions(32, 64, 3).stride(1)));
-        fc1 = register_module("fc1", torch::nn::Linear(9216, 128));
-        fc2 = register_module("fc2", torch::nn::Linear(128, 10));
-    }
-
-    /* forward */
-    torch::Tensor forward(torch::Tensor x) {
-        x = torch::relu(conv1->forward(x));
-        x = torch::relu(conv2->forward(x));
-        x = torch::max_pool2d(x, 2);
-        x = x.view({x.size(0), -1}); // flatten
-        x = torch::relu(fc1->forward(x));
-        x = fc2->forward(x);
-        return torch::log_softmax(x, /*dim=*/1);
-    }
-}; 
-
+const std::string scripted_model = "<path-to-scripted_model.pt>";
 
 void infer_net() {
     /* load dynamic library */
@@ -41,17 +19,22 @@ void infer_net() {
 
     /* register ocl backend */
     torch::register_privateuse1_backend("ocl");
-    torch::Device device("ocl:0");
+    torch::Device device("cpu");    /* option: "cpu", "ocl:0" */
 
-    /* load tensor */
-    float a[2] = {0.2f, 0.3f};
-    torch::Tensor tensor = torch::from_blob(a, {2});
-    torch::Tensor ocl_tensor = tensor.to(device);
-    std::cout << "ocl tensor: " << ocl_tensor << std::endl;
+    /* create dummy input */
+    torch::Tensor input = torch::randn({1, 1, 28, 28}).to(device);
 
-    /* load net */
-    Net net;
-    net.to(device);
+    /* load scripted module */
+    std::cout << "Loading scripted module: " << scripted_model << std::endl;
+    auto module = torch::jit::load(scripted_model);
+    module.to(device);
+    module.eval();
+
+    /* inference */
+    auto out = module.forward({input}).toTensor();
+    auto probs = torch::exp(out);
+    auto top = std::get<1>(probs.max(1));
+    std::cout << "Predicted class (scripted): " << top.item<int>() << std::endl;
 }
 
 int main() {
