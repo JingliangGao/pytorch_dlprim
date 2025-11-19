@@ -431,37 +431,140 @@ using c10::DeviceType;
         return self;
     }
 
-    /* schema: to.device(Tensor(a) self, Device device, ScalarType dtype, bool non_blocking=False, bool copy=False, MemoryFormat? memory_format=None) -> Tensor(a) */
-    at::Tensor to_device(
-        const at::Tensor & self,
-        c10::Device device,                    
-        c10::ScalarType dtype,                 
+    static inline c10::Device ensure_has_index(c10::Device device) {
+        // 对 OpenCL 后端，若没有 index，则默认回退到 ocl:0
+        if (device.is_cpu() || device.has_index()) {
+            return device;
+        }
+        // 如果 DeviceType 是自定义的 OpenCLDeviceType，无法保证 getDeviceGuardImpl 可用，
+        // 所以直接返回默认 OpenCL 设备(0)。
+        if (device.type() == OpenCLDeviceType) {
+            return c10::Device(OpenCLDeviceType, 0);
+        }
+        // Fallback 使用 PyTorch 提供的 impl（可用于其它 device types）
+        const c10::impl::DeviceGuardImplInterface* impl =
+            c10::impl::getDeviceGuardImpl(device.type());
+        return impl->getDevice();
+    }
+
+    // to_impl_dlprim: 统一实现 copy/create 的逻辑（类似 to_impl_npu）
+    static inline at::Tensor to_impl_dlprim(
+        const at::Tensor& self,
+        const c10::TensorOptions& options,
         bool non_blocking,
-        bool copy,
-        c10::optional<c10::MemoryFormat> memory_format)
+        bool copy) 
     {
         GUARD;
 
-        // dtype is non-optional and expected to be a valid ScalarType
-        c10::ScalarType target_dtype = dtype;
+        // memory_format default: Preserve on CPU-like backends? 保持与上面样例一致的策略
+        auto memory_format = options.memory_format_opt().value_or(c10::MemoryFormat::Contiguous);
 
-        // Fast path: same device & dtype and copy==false -> return original
-        if (!copy && self.device() == device && self.scalar_type() == target_dtype) {
+        if (self.dtype() == options.dtype() &&
+            self.layout() == options.layout() &&
+            self.device() == options.device() && !copy &&
+            (memory_format == c10::MemoryFormat::Preserve || self.suggest_memory_format() == memory_format)) {
             return self;
         }
 
-        // Allocate destination with requested device/dtype
-        at::TensorOptions opts = self.options().dtype(target_dtype).device(device);
-        at::Tensor dst = at::empty(self.sizes(), opts);
+        bool pin_out = non_blocking && (self.device().type() == OpenCLDeviceType) && options.device().is_cpu() &&
+                       (options.layout() == c10::kStrided);
 
-        // Ensure source is contiguous and of target dtype; your helper expects dst Tensor
-        at::Tensor src_contig = ptdlprim::make_contiguous_as_target_type(self, dst);
+        // Preserve behavior: 如果用户要求 Preserve，并且 tensor 是 non-overlapping AND dense，
+        // 则复制 strides；否则退化为建议的 memory_format
+        if (memory_format == c10::MemoryFormat::Preserve) {
+            if (self.is_non_overlapping_and_dense()) {
+                auto r = at::empty_strided(
+                    self.sizes(), self.strides(),
+                    options.memory_format(c10::nullopt).pinned_memory(pin_out));
+                r.copy_(self, non_blocking);
+                return r;
+            } else {
+                memory_format = self.suggest_memory_format();
+            }
+        }
 
-        // Use existing copy implementation (handles CPU<->OpenCL, dtype conversion, etc.)
-        ptdlprim::_copy_from(src_contig, dst, non_blocking);
-
-        return dst;
+        // 其它情况：创建空 tensor 再 copy
+        auto r = at::empty(
+            self.sizes(), options.memory_format(memory_format).pinned_memory(pin_out), c10::nullopt);
+        r.copy_(self, non_blocking);
+        return r;
     }
+
+    // === aten::to overload for (Tensor self, Device device, ScalarType dtype, bool non_blocking, bool copy, MemoryFormat? memory_format)
+    at::Tensor to_device(
+        const at::Tensor& self,
+        c10::Device device,
+        at::ScalarType dtype,
+        bool non_blocking,
+        bool copy,
+        c10::optional<c10::MemoryFormat> optional_memory_format)
+    {
+        GUARD;
+        device = ensure_has_index(device);
+
+        c10::TensorOptions opts = self.options().device(device).dtype(dtype);
+        if (optional_memory_format.has_value()) {
+            opts = opts.memory_format(optional_memory_format.value());
+        }
+        return to_impl_dlprim(self, opts, non_blocking, copy);
+    }
+
+    // === aten::to overload for (Tensor self, ScalarType dtype, bool non_blocking, bool copy, MemoryFormat? memory_format)
+    at::Tensor to_dtype(
+        const at::Tensor& self,
+        at::ScalarType dtype,
+        bool non_blocking,
+        bool copy,
+        c10::optional<c10::MemoryFormat> optional_memory_format)
+    {
+        GUARD;
+        // 如果 dtype 相同且不强制 copy，直接返回
+        if (self.dtype() == dtype && !copy) {
+            return self;
+        }
+
+        // 与 NPU 一致：若请求 double 而设备不支持 fp64，就降回 float
+        if (dtype == at::ScalarType::Double) {
+            // 检查当前设备是否支持 double：对于 OpenCL，使用 CLContextManager::fp64 判断
+            bool fp64_supported = true;
+            if (self.device().type() == OpenCLDeviceType) {
+                fp64_supported = CLContextManager::fp64(self.device().index());
+            }
+            if (!fp64_supported) {
+                TORCH_WARN("Device ocl:" + std::to_string(self.device().index()) + " does not support double, casting to float.");
+                dtype = at::ScalarType::Float;
+            }
+        }
+
+        // 简单实现：创建一个与 self 大小相同但目标 dtype 的 tensor 并 copy_
+        TensorOptions opts = self.options().dtype(dtype);
+        if (optional_memory_format.has_value()) {
+            opts = opts.memory_format(optional_memory_format.value());
+        }
+        // 如果 device 未变化，仅 dtype_cast: 使用 make_contiguous_as_target_type 来保证正确性
+        Tensor tmp = at::empty(self.sizes(), opts);
+        // 使用已有的 copy 逻辑（cpu <-> ocl 会在 _copy_from 内处理）
+        tmp.copy_(self, non_blocking);
+        return tmp;
+    }
+
+    // === aten::to overload for (Tensor self, Tensor other, bool non_blocking, bool copy, MemoryFormat? memory_format)
+    at::Tensor to_other(
+        const at::Tensor& self,
+        const at::Tensor& other,
+        bool non_blocking,
+        bool copy,
+        c10::optional<c10::MemoryFormat> optional_memory_format)
+    {
+        GUARD;
+        c10::TensorOptions opts = other.options();
+        if (optional_memory_format.has_value()) {
+            opts = opts.memory_format(optional_memory_format.value());
+        }
+        return to_impl_dlprim(self, opts, non_blocking, copy);
+    }
+
+
 
     void fallback(const c10::OperatorHandle& op, torch::jit::Stack* stack)
     {
@@ -488,8 +591,13 @@ TORCH_LIBRARY_IMPL(aten, PrivateUse1, m) {
       m.impl("aten::_local_scalar_dense",&ptdlprim::_local_scalar_dense);
       m.impl("aten::masked_select",&ptdlprim::masked_select);
       m.impl("aten::resize_",&ptdlprim::resize_);
-    //   m.impl("to.device", &ptdlprim::to_device);
+      m.impl("aten::to.device",&ptdlprim::to_device);
+      m.impl("aten::to.dtype",&ptdlprim::to_dtype);
+      m.impl("aten::to.other",&ptdlprim::to_other);
 }
+
 TORCH_LIBRARY_IMPL(_, PrivateUse1, m) {
       m.fallback(torch::CppFunction::makeFromBoxedFunction<&ptdlprim::fallback>());
 }
+
+
