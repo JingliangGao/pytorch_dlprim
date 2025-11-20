@@ -1,22 +1,7 @@
-#include "CLTensor.h"
-#include "utils.h"
+#include "OpInterface.h"
 
-#include <dlprim/core/util.hpp>
-#include <dlprim/core/pointwise.hpp>
-#include <dlprim/core/loss.hpp>
-#include <dlprim/random.hpp>
-
-#include <iostream>
-namespace ptdlprim {
-
-using namespace torch;
-using torch::autograd::tensor_list;
-using torch::autograd::AutogradContext;
-
-
-using c10::Device;
-using c10::DeviceType;
-
+namespace at_torch {
+namespace op_plugin {
 
     struct SeqState {
          dlprim::RandomState::seed_type seed;
@@ -105,12 +90,13 @@ using c10::DeviceType;
     }
 
 
-} // namespace
-TORCH_LIBRARY_IMPL(aten, PrivateUse1, m) {
-      m.impl("aten::bernoulli_.float",&ptdlprim::bernoulli_);
-      m.impl("aten::normal_",&ptdlprim::normal_);
-      m.impl("aten::uniform_",&ptdlprim::uniform_);
-      m.impl("aten::native_dropout",&ptdlprim::native_dropout);
-      m.impl("aten::native_dropout_backward",&ptdlprim::native_dropout_backward);
-}
+}  /* namespace op_plugin */
+}  /* namespace at_torch */
 
+TORCH_LIBRARY_IMPL(aten, PrivateUse1, m) {
+      m.impl("aten::bernoulli_.float", &at_torch::op_plugin::bernoulli_);
+      m.impl("aten::normal_", &at_torch::op_plugin::normal_);
+      m.impl("aten::uniform_", &at_torch::op_plugin::uniform_);
+      m.impl("aten::native_dropout", &at_torch::op_plugin::native_dropout);
+      m.impl("aten::native_dropout_backward", &at_torch::op_plugin::native_dropout_backward);
+}

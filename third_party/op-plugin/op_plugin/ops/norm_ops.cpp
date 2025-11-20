@@ -1,20 +1,8 @@
-#include "CLTensor.h"
-#include "utils.h"
+#include "OpInterface.h"
 
-#include <dlprim/core/util.hpp>
-#include <dlprim/core/pointwise.hpp>
-#include <dlprim/core/bn.hpp>
+namespace at_torch {
+namespace op_plugin {
 
-#include <iostream>
-namespace ptdlprim {
-
-using namespace torch;
-using torch::autograd::tensor_list;
-using torch::autograd::AutogradContext;
-
-
-using c10::Device;
-using c10::DeviceType;
     // {"schema": "aten::native_batch_norm(Tensor input, Tensor? weight, Tensor? bias, Tensor? running_mean, Tensor? running_var, bool training, float momentum, float eps) -> (Tensor, Tensor, Tensor)", "dispatch": "True", "default": "False"}
     ::std::tuple<Tensor,Tensor,Tensor> native_batch_norm(const Tensor & input, const c10::optional<Tensor> & weight, const c10::optional<Tensor> & bias, const c10::optional<Tensor> & running_mean, const c10::optional<Tensor> & running_var, bool training, double momentum, double eps)
     {
@@ -350,11 +338,15 @@ using c10::DeviceType;
         return std::tuple<torch::Tensor,torch::Tensor,torch::Tensor>(x_diff,gamma_diff,beta_diff);
     }
 
-} // namespace
+}  /* namespace op_plugin */
+}  /* namespace at_torch */
+
 TORCH_LIBRARY_IMPL(aten, PrivateUse1, m) {
-      m.impl("aten::native_batch_norm",&ptdlprim::native_batch_norm);
-      m.impl("aten::native_batch_norm_backward",&ptdlprim::native_batch_norm_backward);
-      m.impl("aten::native_layer_norm",&ptdlprim::native_layer_norm);
-      m.impl("aten::native_layer_norm_backward",&ptdlprim::native_layer_norm_backward);
+      m.impl("aten::native_batch_norm", &at_torch::op_plugin::native_batch_norm);
+      m.impl("aten::native_batch_norm_backward", &at_torch::op_plugin::native_batch_norm_backward);
+      m.impl("aten::native_layer_norm", &at_torch::op_plugin::native_layer_norm);
+      m.impl("aten::native_layer_norm_backward", &at_torch::op_plugin::native_layer_norm_backward);
 }
+
+
 

@@ -1,21 +1,21 @@
-#include "CLTensor.h"
-#include "utils.h"
-#include <ATen/native/CPUFallback.h>
-#include <ATen/InferSize.h>
+#include "OpInterface.h"
 
-#include <dlprim/core/util.hpp>
-#include <dlprim/core/pointwise.hpp>
+namespace at_torch {
+namespace op_plugin {
 
-#include <iostream>
-namespace ptdlprim {
-
-using namespace torch;
-using torch::autograd::tensor_list;
-using torch::autograd::AutogradContext;
-
-
-using c10::Device;
-using c10::DeviceType;
+// Register privateuse1 backend name on library load so user code doesn't have
+// to call torch::register_privateuse1_backend("ocl") manually. This helps
+// ensure dispatch name mapping is in place before users create Devices like
+// torch::Device(torch::kPrivateUse1, idx) or call module.to(device).
+__attribute__((constructor)) static void ptdlprim_library_init() {
+    try {
+        // This call is idempotent: repeated registration is safe.
+        torch::register_privateuse1_backend("ocl");
+        std::cerr << "ptdlprim: registered privateuse1 backend name 'ocl'\n";
+    } catch (const std::exception &e) {
+        std::cerr << "ptdlprim: failed to register privateuse1 backend: " << e.what() << std::endl;
+    }
+}
 
 
     using torch::Tensor;
@@ -33,7 +33,7 @@ using c10::DeviceType;
             st = c10::kFloat;
             TORCH_WARN("This device ocl:" + std::to_string(dev.index()) + " does not support cl_khr_fp64, falling back to float");
         }
-        return ptdlprim::new_ocl_tensor(size,dev,st);
+        return at_torch::new_ocl_tensor(size,dev,st);
     }
 
 
@@ -50,7 +50,7 @@ using c10::DeviceType;
     {
         GUARD;
         Tensor r = allocate_empty(size,dtype,layout,device,pin_memory,c10::nullopt);
-        return ptdlprim::_reshape_alias(r,size,stride);
+        return at_torch::op_plugin::_reshape_alias(r,size,stride);
     }
 
     Tensor view_old(const Tensor & self, IntArrayRef size)
@@ -188,7 +188,7 @@ using c10::DeviceType;
     // {"schema": "aten::_copy_from_and_resize(Tensor self, Tensor dst) -> Tensor", "dispatch": "True", "default": "False"}
     Tensor _copy_from_and_resize(const Tensor & self, const Tensor & dst)
     {
-        return ptdlprim::_copy_from(self,dst,false);
+        return at_torch::op_plugin::_copy_from(self,dst,false);
     }
 
     // {"schema": "aten::copy_(Tensor(a!) self, Tensor src, bool non_blocking=False) -> Tensor(a!)", "dispatch": "True", "default": "False"}
@@ -207,7 +207,7 @@ using c10::DeviceType;
 
         // Reuse existing implementation that copies src -> dst
         // Note: _copy_from defined earlier has signature (src, dst, non_blocking)
-        ptdlprim::_copy_from(src, self, non_blocking);
+        at_torch::op_plugin::_copy_from(src, self, non_blocking);
 
         return self;
     }
@@ -573,31 +573,38 @@ using c10::DeviceType;
       native::cpu_fallback(op, stack);
     }
 
-    } // namespace dtype
+}  /* namespace op_plugin */
+}  /* namespace at_torch */
 
 TORCH_LIBRARY_IMPL(aten, PrivateUse1, m) {
-      m.impl("aten::set_.source_Storage",&ptdlprim::set_source_storage);
-      m.impl("aten::set_.source_Storage_storage_offset",&ptdlprim::set_source_storage_offset);
-      m.impl("aten::empty.memory_format", &ptdlprim::allocate_empty);
-      m.impl("aten::empty_strided",&ptdlprim::empty_strided);
-      m.impl("aten::_reshape_alias",&ptdlprim::_reshape_alias);
-      m.impl("aten::view",&ptdlprim::view);
-      m.impl("aten::_copy_from",&ptdlprim::_copy_from);
-      m.impl("aten::_copy_from_and_resize",&ptdlprim::_copy_from_and_resize);
-      m.impl("aten::copy_", &ptdlprim::copy_);
-      m.impl("aten::fill_.Scalar",&ptdlprim::fill_);
-      m.impl("aten::zero_",&ptdlprim::zero_);
-      m.impl("aten::as_strided",&ptdlprim::as_strided);
-      m.impl("aten::_local_scalar_dense",&ptdlprim::_local_scalar_dense);
-      m.impl("aten::masked_select",&ptdlprim::masked_select);
-      m.impl("aten::resize_",&ptdlprim::resize_);
-      m.impl("aten::to.device",&ptdlprim::to_device);
-      m.impl("aten::to.dtype",&ptdlprim::to_dtype);
-      m.impl("aten::to.other",&ptdlprim::to_other);
+      m.impl("aten::set_.source_Storage", &at_torch::op_plugin::set_source_storage);
+      m.impl("aten::set_.source_Storage_storage_offset", &at_torch::op_plugin::set_source_storage_offset);
+      m.impl("aten::empty.memory_format", &at_torch::op_plugin::allocate_empty);
+      m.impl("aten::empty_strided", &at_torch::op_plugin::empty_strided);
+      m.impl("aten::_reshape_alias", &at_torch::op_plugin::_reshape_alias);
+      m.impl("aten::view", &at_torch::op_plugin::view);
+      m.impl("aten::_copy_from", &at_torch::op_plugin::_copy_from);
+      m.impl("aten::_copy_from_and_resize", &at_torch::op_plugin::_copy_from_and_resize);
+      m.impl("aten::fill_.Scalar", &at_torch::op_plugin::fill_);
+      m.impl("aten::zero_", &at_torch::op_plugin::zero_);
+      m.impl("aten::as_strided", &at_torch::op_plugin::as_strided);
+      m.impl("aten::_local_scalar_dense", &at_torch::op_plugin::_local_scalar_dense);
+      m.impl("aten::masked_select", &at_torch::op_plugin::masked_select);
+      m.impl("aten::resize_", &at_torch::op_plugin::resize_);
+      m.impl("aten::copy_", &at_torch::op_plugin::copy_);
+      m.impl("aten::to.device", &at_torch::op_plugin::to_device);
+      m.impl("aten::to.dtype", &at_torch::op_plugin::to_dtype);
+      m.impl("aten::to.other", &at_torch::op_plugin::to_other);
+}
+
+TORCH_LIBRARY_IMPL(aten, AutogradPrivateUse1, m) {
+      m.impl("aten::copy_", &at_torch::op_plugin::copy_);
+      m.impl("aten::to.device", &at_torch::op_plugin::to_device);
+      m.impl("aten::to.dtype", &at_torch::op_plugin::to_dtype);
+      m.impl("aten::to.other", &at_torch::op_plugin::to_other);
 }
 
 TORCH_LIBRARY_IMPL(_, PrivateUse1, m) {
-      m.fallback(torch::CppFunction::makeFromBoxedFunction<&ptdlprim::fallback>());
+      m.fallback(torch::CppFunction::makeFromBoxedFunction<&at_torch::op_plugin::fallback>());
 }
-
 
