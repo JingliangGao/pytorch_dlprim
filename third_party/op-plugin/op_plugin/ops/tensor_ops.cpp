@@ -564,47 +564,6 @@ __attribute__((constructor)) static void ptdlprim_library_init() {
         return to_impl_dlprim(self, opts, non_blocking, copy);
     }
 
-
-
-    void fallback(const c10::OperatorHandle& op, torch::jit::Stack* stack)
-    {
-      TORCH_WARN("The operator '", op.schema().operator_name(), "' is not currently ",
-                 "supported on the ocl backend.");
-      native::cpu_fallback(op, stack);
-    }
-
 }  /* namespace op_plugin */
 }  /* namespace at_torch */
-
-TORCH_LIBRARY_IMPL(aten, PrivateUse1, m) {
-      m.impl("aten::set_.source_Storage", &at_torch::op_plugin::set_source_storage);
-      m.impl("aten::set_.source_Storage_storage_offset", &at_torch::op_plugin::set_source_storage_offset);
-      m.impl("aten::empty.memory_format", &at_torch::op_plugin::allocate_empty);
-      m.impl("aten::empty_strided", &at_torch::op_plugin::empty_strided);
-      m.impl("aten::_reshape_alias", &at_torch::op_plugin::_reshape_alias);
-      m.impl("aten::view", &at_torch::op_plugin::view);
-      m.impl("aten::_copy_from", &at_torch::op_plugin::_copy_from);
-      m.impl("aten::_copy_from_and_resize", &at_torch::op_plugin::_copy_from_and_resize);
-      m.impl("aten::fill_.Scalar", &at_torch::op_plugin::fill_);
-      m.impl("aten::zero_", &at_torch::op_plugin::zero_);
-      m.impl("aten::as_strided", &at_torch::op_plugin::as_strided);
-      m.impl("aten::_local_scalar_dense", &at_torch::op_plugin::_local_scalar_dense);
-      m.impl("aten::masked_select", &at_torch::op_plugin::masked_select);
-      m.impl("aten::resize_", &at_torch::op_plugin::resize_);
-      m.impl("aten::copy_", &at_torch::op_plugin::copy_);
-      m.impl("aten::to.device", &at_torch::op_plugin::to_device);
-      m.impl("aten::to.dtype", &at_torch::op_plugin::to_dtype);
-      m.impl("aten::to.other", &at_torch::op_plugin::to_other);
-}
-
-TORCH_LIBRARY_IMPL(aten, AutogradPrivateUse1, m) {
-      m.impl("aten::copy_", &at_torch::op_plugin::copy_);
-      m.impl("aten::to.device", &at_torch::op_plugin::to_device);
-      m.impl("aten::to.dtype", &at_torch::op_plugin::to_dtype);
-      m.impl("aten::to.other", &at_torch::op_plugin::to_other);
-}
-
-TORCH_LIBRARY_IMPL(_, PrivateUse1, m) {
-      m.fallback(torch::CppFunction::makeFromBoxedFunction<&at_torch::op_plugin::fallback>());
-}
 

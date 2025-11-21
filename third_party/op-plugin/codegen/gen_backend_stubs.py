@@ -5,12 +5,11 @@ from torchgen.gen import FileManager
 from torchgen.utils import concatMap
 import argparse
 import os
+import torch
 
 current_file = Path(__file__).resolve()   
 plugin_dir = current_file.parent.parent
 
-
-    
 
 def main() -> None:
     parser = argparse.ArgumentParser(description='Generate backend stub files')
@@ -28,7 +27,7 @@ def main() -> None:
 
     source_yaml_path = os.path.realpath(options.source_yaml)
     source_yaml_path = sort_native_yaml(source_yaml_path)
-    backend_declarations, dispatch_registrations_body = parse_native_yaml(source_yaml_path)
+    backend_declarations, dispatch_registrations_body, p_registrations_body, ap_registrations_body = parse_native_yaml(source_yaml_path)
 
     def make_file_manager(install_dir: str) -> FileManager:
         return FileManager(
@@ -37,8 +36,9 @@ def main() -> None:
 
     fm = make_file_manager(options.output_dir)
 
-    # pytorch_version = os.environ.get('PYTORCH_VERSION').split('.')
-    torch_dir = f"v2r9"
+    version = torch.__version__ 
+    major, minor, *_ = version.split(".")
+    torch_dir = f"v{major}r{minor}"
 
     all_functions = sorted(set(concatMap(lambda f: [f],
                                          set(v for sublist in backend_declarations.values() for v in sublist))))
@@ -47,36 +47,31 @@ def main() -> None:
         "OpInterface.h",
         "OpInterface.h",
         lambda: {
-            "torch_dir": torch_dir,
             "namespace": "op_plugin",
             "declarations": all_functions,
         },
     )
 
-    # header_files = {
-    #     "op_api": "OpApiInterface.h",
-    #     "acl_op": "AclOpsInterface.h",
-    #     "sparse": "SparseOpsInterface.h",
-    # }
-    # for op_type, file_name in header_files.items():
-    #     fm.write_with_template(
-    #         file_name,
-    #         "Interface.h",
-    #         lambda: {
-    #             "torch_dir": torch_dir,
-    #             "namespace": op_type,
-    #             "declarations": backend_declarations[op_type],
-    #         },
-    #     )
+    fm.write_with_template(
+        "OpInterface.cpp",
+        "OpInterface.cpp",
+        lambda: {
+            "namespace": "op_plugin",
+            "declarations": dispatch_registrations_body,
+        },
+    )
 
-    # fm.write_with_template(
-    #     "OpInterface.cpp",
-    #     "OpInterface.cpp",
-    #     lambda: {
-    #         "namespace": "op_plugin",
-    #         "declarations": dispatch_registrations_body,
-    #     },
-    # )
+    fm.write_with_template(
+        "Register.cpp",
+        "Register.cpp",
+        lambda: {
+            "namespace": "op_plugin",
+            "p_namespace": "aten",
+            "p_declarations": p_registrations_body,
+            "ap_namespace": "aten",
+            "ap_declarations": ap_registrations_body,
+        },
+    )
 
 
 if __name__ == '__main__':

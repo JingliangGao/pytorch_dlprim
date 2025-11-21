@@ -161,7 +161,7 @@ namespace op_plugin {
         return std::tuple<torch::Tensor,torch::Tensor,torch::Tensor>(data_diff,filter_diff,bias_diff);
     }
 
-    Tensor _adaptive_avg_pool2d(const Tensor & self, IntArrayRef output_size) // {"schema": "aten::_adaptive_avg_pool2d
+    Tensor _adaptive_avg_pool2d(const Tensor & self, IntArrayRef output_size) 
     {
         GUARD;
         Tensor self_c = self.contiguous();
@@ -415,7 +415,7 @@ namespace op_plugin {
     };
 
     // {"schema": "aten::max_pool2d(Tensor self, int[2] kernel_size, int[2] stride=[], int[2] padding=0, int[2] dilation=1, bool ceil_mode=False) -> Tensor", "dispatch": "False", "default": "True"}
-    torch::Tensor max_pool2d_autograd(torch::Tensor const &self, IntArrayRef kernel_size, IntArrayRef stride, IntArrayRef padding, IntArrayRef dilation, bool ceil_mode) {
+    torch::Tensor max_pool2d(torch::Tensor const &self, IntArrayRef kernel_size, IntArrayRef stride, IntArrayRef padding, IntArrayRef dilation, bool ceil_mode) {
         GUARD;
         return max_pool2d_cls::apply(self,kernel_size,stride,padding,dilation,ceil_mode);
     }
@@ -808,28 +808,5 @@ namespace op_plugin {
 }  /* namespace op_plugin */
 }  /* namespace at_torch */
 
-TORCH_LIBRARY_IMPL(aten, PrivateUse1, m) {
-      m.impl("aten::convolution_overrideable", &at_torch::op_plugin::convolution_overrideable);
-      m.impl("aten::convolution_backward_overrideable", &at_torch::op_plugin::convolution_backward_overrideable);
-      m.impl("aten::_adaptive_avg_pool2d", &at_torch::op_plugin::_adaptive_avg_pool2d);
-      m.impl("aten::_adaptive_avg_pool2d_backward", &at_torch::op_plugin::_adaptive_avg_pool2d_backward);
-      m.impl("aten::avg_pool2d.out", &at_torch::op_plugin::avg_pool2d_out);
-      m.impl("aten::avg_pool2d_backward.grad_input", &at_torch::op_plugin::avg_pool2d_backward_out);
-      m.impl("aten::mm.out", &at_torch::op_plugin::mm_out);
-      m.impl("aten::bmm.out", &at_torch::op_plugin::bmm_out);
-      m.impl("aten::_native_multi_head_attention.out", &at_torch::op_plugin::_native_multi_head_attention_out);
-      m.impl("aten::_native_multi_head_attention", &at_torch::op_plugin::_native_multi_head_attention);
-      m.impl("aten::addmm.out", &at_torch::op_plugin::addmm_out);
-      m.impl("aten::_transform_bias_rescale_qkv", &at_torch::op_plugin::transform_bias_rescale_qkv);
-      m.impl("aten::upsample_nearest2d.out", &at_torch::op_plugin::upsample_nearest2d_out);
-      m.impl("aten::upsample_nearest2d_backward.grad_input", &at_torch::op_plugin::upsample_nearest2d_backward_out);
-      m.impl("aten::_upsample_nearest_exact2d.out", &at_torch::op_plugin::_upsample_nearest_exact2d_out);
-      m.impl("aten::_upsample_nearest_exact2d_backward.grad_input", &at_torch::op_plugin::_upsample_nearest_exact2d_backward_out);
-      m.impl("aten::upsample_bilinear2d.out", &at_torch::op_plugin::upsample_bilinear2d_out);
-      m.impl("aten::upsample_bilinear2d_backward.grad_input", &at_torch::op_plugin::upsample_bilinear2d_backward_out);
-}
-TORCH_LIBRARY_IMPL(aten, AutogradPrivateUse1, m) {
-      m.impl("aten::linear", &at_torch::op_plugin::linear);
-      m.impl("aten::max_pool2d", &at_torch::op_plugin::max_pool2d_autograd);
-}
+
  

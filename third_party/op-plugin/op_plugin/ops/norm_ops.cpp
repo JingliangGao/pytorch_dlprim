@@ -341,12 +341,5 @@ namespace op_plugin {
 }  /* namespace op_plugin */
 }  /* namespace at_torch */
 
-TORCH_LIBRARY_IMPL(aten, PrivateUse1, m) {
-      m.impl("aten::native_batch_norm", &at_torch::op_plugin::native_batch_norm);
-      m.impl("aten::native_batch_norm_backward", &at_torch::op_plugin::native_batch_norm_backward);
-      m.impl("aten::native_layer_norm", &at_torch::op_plugin::native_layer_norm);
-      m.impl("aten::native_layer_norm_backward", &at_torch::op_plugin::native_layer_norm_backward);
-}
-
 
 

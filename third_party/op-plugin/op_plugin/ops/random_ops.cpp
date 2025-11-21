@@ -93,10 +93,4 @@ namespace op_plugin {
 }  /* namespace op_plugin */
 }  /* namespace at_torch */
 
-TORCH_LIBRARY_IMPL(aten, PrivateUse1, m) {
-      m.impl("aten::bernoulli_.float", &at_torch::op_plugin::bernoulli_);
-      m.impl("aten::normal_", &at_torch::op_plugin::normal_);
-      m.impl("aten::uniform_", &at_torch::op_plugin::uniform_);
-      m.impl("aten::native_dropout", &at_torch::op_plugin::native_dropout);
-      m.impl("aten::native_dropout_backward", &at_torch::op_plugin::native_dropout_backward);
-}
+

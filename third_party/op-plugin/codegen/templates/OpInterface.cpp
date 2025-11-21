@@ -1,5 +1,5 @@
 #include "op_plugin/generate/OpInterface.h"
 
-namespace ${namespace} {
+namespace at_torch {
 ${declarations}
 }

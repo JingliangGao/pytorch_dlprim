@@ -9,6 +9,8 @@ from codegen.utils import get_torchgen_dir
 from torchgen.gen import parse_tags_yaml
 import os
 import yaml
+from pathlib import Path
+from codegen.config import AutogradPrivateUse1_Op, AllPrivateUse1_Op, NAMESPACE
 
 SYMINT_SET = set()
 
@@ -35,10 +37,13 @@ def sort_native_yaml(path: str):
         raise TypeError("all_funcs must be a list")
     
     # rewrite yaml file
-    with open(path, "w", encoding="utf-8") as f:
+    current_file = Path(__file__).resolve()   
+    plugin_path = current_file.parent.parent 
+    new_yaml_path = f"{plugin_path}/op_plugin/generate/op_plugin_functions.yaml"
+    with open(new_yaml_path, "w", encoding="utf-8") as f:
         yaml.dump(es, f, allow_unicode=True, sort_keys=False)
     
-    return path
+    return new_yaml_path
     
     
 
@@ -110,9 +115,8 @@ class SelfArgument:
     argument: Argument
 
 
-def gen_return(
+def gen_dispatch_return(
     f: NativeFunction,
-    # deprecated_dict: Dict,
 ) -> List[Optional[str]]:
     ret = []
     with native_function_manager(f):
@@ -125,62 +129,58 @@ def gen_return(
         if str(f.func.name) in SYMINT_SET:
             op_name += "_symint"
             has_symint = True
+     
 
         sig = NativeSignature(f.func, prefix='', symint=has_symint)
         args_exprs_str = ', '.join(a.name for a in sig.arguments())
 
-        # impl_name = f.impl_name
-        # if not f.impl_name:
-        #     impl_name = op_name
-        
-#         deprecated_warn = ""
-#         if op_name_with_overload in deprecated_dict.keys():
-#             deprecated_func = f'torch_npu.{str(f.func.name.name)}'
-#             deprecated_replace = deprecated_dict[op_name_with_overload]
-#             if deprecated_replace is not None:
-#                 deprecated_warn += f'TORCH_WARN_ONCE("{deprecated_func} is deprecated and will be removed in future version. \
-# Use {deprecated_replace} instead.");'
-#             else:
-#                 deprecated_warn += f'TORCH_WARN_ONCE("{deprecated_func} is deprecated and will be removed in future version.");'
+        impl_name = op_name
+        op_name = "wrapper_" + op_name
+        ns = NAMESPACE
+        ret.append(f"""{sig.defn(name=op_name)}{{
 
-        format_check = []
-        format_display = []
-        place_holder = []
-        format_for_args = []
-        inputs_list = ""
-        is_aclnn_only = "c10_npu::IsAclnnOnly()"
-        for a in sig.arguments():
-            argument = a.argument
-            if isinstance(a.argument, SelfArgument):
-                argument = a.argument.argument
-            if not isinstance(a.argument, TensorOptionsArguments) and argument.type.is_tensor_like():
-                format_for_args.append(
-                    f"    bool {a.name}_base_format = at_npu::native::FormatHelper::IsOpInputBaseFormat({a.name});\n")
-                format_check.append(f" && {a.name}_base_format")
-                format_display.append(f", !{a.name}_base_format")
-                place_holder.append(f", {a.name} is internal format: %d")
-            inputs_list += f"{a.name}, "
-        inputs_list = inputs_list[:-2]
-            
+    // insert profiler anchor
+    // at_torch::profiler::NPURecordFunction record("{impl_name}");
+    return {ns}::{impl_name}({args_exprs_str});
+}}
+\n""")
 
-        # if "op_api" in f.impl_ns and "acl_op" in f.impl_ns:
-        #     if not f.internal_format_opapi:
-        #         pass
-        #     else:
-        #         pass
-        # elif "op_api" in f.impl_ns:
-        #     ns = f.impl_ns[0]
-        #     if f.internal_format_opapi:
-        #         pass
-        #     else:
-        #         pass
-        # elif "acl_op" in f.impl_ns:
-        #     ns = f.impl_ns[0]
-        #     pass
-        # if f.sparse is not None:
-        #     pass
     return ret
 
+def gen_dispatchkey_return(
+    f: NativeFunction,
+    type: str
+) -> List[Optional[str]]:
+    privateuse1_ret = set()
+    autogradprivateuse1_ret = set()
+    with native_function_manager(f):
+        has_symint = False
+        op_name_with_overload = str(f.func.name)
+        op_name = str(f.func.name.name)
+        global SYMINT_SET
+        if f.func.is_out_fn():
+            op_name += "_out"
+        if str(f.func.name) in SYMINT_SET:
+            op_name += "_symint"
+            has_symint = True
+     
+
+        impl_name = op_name
+        op_name = "wrapper_" + op_name
+
+        aten_name = f"aten::{op_name_with_overload}"
+        if aten_name in AllPrivateUse1_Op:
+            privateuse1_ret.add(f"""m.impl("{aten_name}", TORCH_FN({op_name}));""")
+            autogradprivateuse1_ret.add(f"""m.impl("aten::{op_name_with_overload}", TORCH_FN({op_name}));""")
+        elif aten_name in AutogradPrivateUse1_Op:
+            autogradprivateuse1_ret.add(f"""m.impl("aten::{op_name_with_overload}", TORCH_FN({op_name}));""")
+        else:
+            privateuse1_ret.add(f"""m.impl("{aten_name}", TORCH_FN({op_name}));""")
+
+    if type == "privateuse1":
+        return sorted(list(privateuse1_ret))
+    else:
+        return sorted(list(autogradprivateuse1_ret))
 
 def parse_native_yaml(
     path: str,
@@ -194,6 +194,8 @@ def parse_native_yaml(
     for f in res:
         gen_function_declaration(f, backend_declarations)
 
-    dispatch_registrations_body = sorted(set(concatMap(lambda f: gen_return(f), res)))   # lambda f: gen_return(f, {})
+    dispatch_registrations_body = sorted(set(concatMap(lambda f: gen_dispatch_return(f), res)))
+    p_registrations_body = sorted(set(concatMap(lambda f: gen_dispatchkey_return(f, "privateuse1"), res)))
+    ap_registrations_body = sorted(set(concatMap(lambda f: gen_dispatchkey_return(f, "autograd_privateuse1"), res)))
 
-    return backend_declarations, dispatch_registrations_body
+    return backend_declarations, dispatch_registrations_body, p_registrations_body, ap_registrations_body

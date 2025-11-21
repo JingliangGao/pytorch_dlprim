@@ -1525,96 +1525,13 @@ namespace op_plugin {
     }
 
 
+    Tensor relu(const Tensor & self) {
+        return act_autograd<dlprim::StandardActivations::relu>;
+    }
+
+
 }  /* namespace op_plugin */
 }  /* namespace at_torch */
 
-TORCH_LIBRARY_IMPL(aten, PrivateUse1, m) {
-      m.impl("aten::relu_", &at_torch::op_plugin::relu_);
-      m.impl("aten::mul.out", &at_torch::op_plugin::mul_out);
-      m.impl("aten::mul_.Scalar",&at_torch::op_plugin::mul_scalar_);
-      m.impl("aten::add.out", &at_torch::op_plugin::add_out);
-      m.impl("aten::sub.out", &at_torch::op_plugin::sub_out);
-      m.impl("aten::exp.out", &at_torch::op_plugin::exp_out);
-      m.impl("aten::log.out", &at_torch::op_plugin::log_out);
-      m.impl("aten::addcmul.out", &at_torch::op_plugin::addcmul_out);
-      m.impl("aten::sqrt.out", &at_torch::op_plugin::sqrt_out);
-      m.impl("aten::div.out", &at_torch::op_plugin::div_out);
-      m.impl("aten::addcdiv.out", &at_torch::op_plugin::addcdiv_out);
-      m.impl("aten::threshold_backward.grad_input", &at_torch::op_plugin::threshold_backward_out);
-      m.impl("aten::mean.out", &at_torch::op_plugin::mean_out);
-      m.impl("aten::sum.IntList_out", &at_torch::op_plugin::sum_out);
-      m.impl("aten::prod.int_out", &at_torch::op_plugin::prod_out);
-      m.impl("aten::hardtanh", &at_torch::op_plugin::hardtanh);
-      m.impl("aten::hardtanh_", &at_torch::op_plugin::hardtanh_);
-      m.impl("aten::hardtanh_backward", &at_torch::op_plugin::hardtanh_backward);
-      m.impl("aten::abs", &at_torch::op_plugin::abs);
-      m.impl("aten::abs.out", &at_torch::op_plugin::abs_out);
-      m.impl("aten::sgn.out", &at_torch::op_plugin::sgn_out);
-      m.impl("aten::_cat", &at_torch::op_plugin::_cat);
-      m.impl("aten::cat.out", &at_torch::op_plugin::cat_out);
-      m.impl("aten::hardswish_", &at_torch::op_plugin::hardswish_);
-      m.impl("aten::hardsigmoid.out", &at_torch::op_plugin::hardsigmoid_out);
-      m.impl("aten::hardsigmoid_backward.grad_input", &at_torch::op_plugin::hardsigmoid_backward_out);
-      m.impl("aten::sigmoid.out", &at_torch::op_plugin::sigmoid_out);
-      m.impl("aten::sigmoid", &at_torch::op_plugin::sigmoid);
-      m.impl("aten::sigmoid_", &at_torch::op_plugin::sigmoid_);
-      m.impl("aten::sigmoid_backward.grad_input", &at_torch::op_plugin::sigmoid_backward_out);
-      m.impl("aten::tanh.out", &at_torch::op_plugin::tanh_out);
-      m.impl("aten::tanh_backward.grad_input", &at_torch::op_plugin::tanh_backward_out);
-      m.impl("aten::silu.out", &at_torch::op_plugin::silu_out);
-      m.impl("aten::silu_backward.grad_input", &at_torch::op_plugin::silu_backward_out);
-      m.impl("aten::tanh", &at_torch::op_plugin::tanh);
-      m.impl("aten::tanh_", &at_torch::op_plugin::tanh_);
-      m.impl("aten::leaky_relu.out", &at_torch::op_plugin::leaky_relu_out);
-      m.impl("aten::leaky_relu_backward.grad_input", &at_torch::op_plugin::leaky_relu_backward_out);
-      m.impl("aten::hardswish_backward", &at_torch::op_plugin::hardswish_backward);
-      m.impl("aten::argmax.out", &at_torch::op_plugin::argmax_out);
-      m.impl("aten::ne.Tensor_out", &at_torch::op_plugin::ne_out_tensor);
-      m.impl("aten::eq.Tensor_out", &at_torch::op_plugin::eq_out_tensor);
-      m.impl("aten::lt.Tensor_out", &at_torch::op_plugin::lt_out_tensor);
-      m.impl("aten::gt.Tensor_out", &at_torch::op_plugin::gt_out_tensor);
-      m.impl("aten::le.Tensor_out", &at_torch::op_plugin::le_out_tensor);
-      m.impl("aten::ge.Tensor_out", &at_torch::op_plugin::ge_out_tensor);
 
-      m.impl("aten::ne.Scalar_out", &at_torch::op_plugin::ne_out);
-      m.impl("aten::eq.Scalar_out", &at_torch::op_plugin::eq_out);
-      m.impl("aten::le.Scalar_out", &at_torch::op_plugin::le_out);
-      m.impl("aten::ge.Scalar_out", &at_torch::op_plugin::ge_out);
-      m.impl("aten::lt.Scalar_out", &at_torch::op_plugin::lt_out);
-      m.impl("aten::gt.Scalar_out", &at_torch::op_plugin::gt_out);
-
-      m.impl("aten::bitwise_and.Tensor_out",&at_torch::op_plugin::bitwise_and_out);
-      m.impl("aten::bitwise_or.Tensor_out", &at_torch::op_plugin::bitwise_or_out);
-      m.impl("aten::bitwise_xor.Tensor_out",&at_torch::op_plugin::bitwise_xor_out);
-      m.impl("aten::bitwise_not.out", &at_torch::op_plugin::bitwise_not_out);
-      m.impl("aten::min", &at_torch::op_plugin::min);
-      m.impl("aten::max", &at_torch::op_plugin::max);
-      m.impl("aten::clamp.out", &at_torch::op_plugin::clamp_out);
-      m.impl("aten::clamp_min.out", &at_torch::op_plugin::clamp_min_out);
-      m.impl("aten::neg.out", &at_torch::op_plugin::neg_out);
-      m.impl("aten::reciprocal.out", &at_torch::op_plugin::reciprocal_out);
-      m.impl("aten::dot", &at_torch::op_plugin::dot);
-      m.impl("aten::ceil.out", &at_torch::op_plugin::ceil_out);
-      m.impl("aten::gelu.out", &at_torch::op_plugin::gelu_out);
-      m.impl("aten::gelu_backward.grad_input", &at_torch::op_plugin::gelu_backward_out);
-      m.impl("aten::lerp.Scalar_out", &at_torch::op_plugin::lerp_out);
-      m.impl("aten::logit.out", &at_torch::op_plugin::logit_out);
-      m.impl("aten::logit", &at_torch::op_plugin::logit);
-      m.impl("aten::arange.start_out", &at_torch::op_plugin::arange_out);
-      m.impl("aten::amax.out", &at_torch::op_plugin::amax_out);
-      m.impl("aten::amin.out", &at_torch::op_plugin::amin_out);
-      m.impl("aten::round.out", &at_torch::op_plugin::round_out);
-      m.impl("aten::atan.out", &at_torch::op_plugin::atan_out);
-      m.impl("aten::maximum.out", &at_torch::op_plugin::maximum_out);
-      m.impl("aten::minimum.out", &at_torch::op_plugin::minimum_out);
-      m.impl("aten::pow.Tensor_Scalar_out", &at_torch::op_plugin::pow_out);
-      m.impl("aten::log_sigmoid_forward", &at_torch::op_plugin::log_sigmoid_forward);
-      m.impl("aten::log_sigmoid_forward.output", &at_torch::op_plugin::log_sigmoid_forward_out);
-      m.impl("aten::log_sigmoid_backward.grad_input", &at_torch::op_plugin::log_sigmoid_backward_out);
-      m.impl("aten::log_sigmoid_backward", &at_torch::op_plugin::log_sigmoid_backward);
-}
-
-TORCH_LIBRARY_IMPL(aten, AutogradPrivateUse1, m) {
-      m.impl("aten::relu",&at_torch::op_plugin::act_autograd<dlprim::StandardActivations::relu>);
-}
 

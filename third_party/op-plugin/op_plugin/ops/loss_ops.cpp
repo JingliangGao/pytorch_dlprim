@@ -250,18 +250,5 @@ namespace op_plugin {
 }  /* namespace op_plugin */
 }  /* namespace at_torch */
 
-TORCH_LIBRARY_IMPL(aten, PrivateUse1, m) {
-      m.impl("aten::nll_loss_forward.output", &at_torch::op_plugin::nll_loss_forward_out);
-      m.impl("aten::nll_loss_backward.grad_input", &at_torch::op_plugin::nll_loss_backward_out);
-      m.impl("aten::binary_cross_entropy", &at_torch::op_plugin::binary_cross_entropy);
-      m.impl("aten::binary_cross_entropy_backward", &at_torch::op_plugin::binary_cross_entropy_backward);
-      m.impl("aten::binary_cross_entropy_backward.grad_input",&at_torch::op_plugin::binary_cross_entropy_backward_out);
-      m.impl("aten::_log_softmax.out", &at_torch::op_plugin::_log_softmax_out);
-      m.impl("aten::_log_softmax_backward_data.out", &at_torch::op_plugin::_log_softmax_backward_data_out);
-      m.impl("aten::_softmax.out", &at_torch::op_plugin::_softmax_out);
-      m.impl("aten::_softmax_backward_data.out", &at_torch::op_plugin::_softmax_backward_data_out);
-      m.impl("aten::mse_loss", &at_torch::op_plugin::mse_loss);
-      m.impl("aten::mse_loss_backward", &at_torch::op_plugin::mse_loss_backward);
-} 
 
 
