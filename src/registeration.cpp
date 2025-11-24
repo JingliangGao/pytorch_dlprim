@@ -18,7 +18,7 @@
 #include <ATen/detail/PrivateUse1HooksInterface.h>
 #endif
 
-namespace ptdlprim {
+namespace at_torch {
 
 using namespace torch;
 using torch::autograd::tensor_list;

@@ -5,7 +5,7 @@
 #include "CLTensor.h"
 #include "utils.h"
 #include <dlprim/core/util.hpp>
-namespace ptdlprim {
+namespace at_torch {
 
 
     using namespace torch;
@@ -77,12 +77,12 @@ namespace ptdlprim {
 // that's implemented in C++.
 // The implementation in this file maps directly to the `PrivateUse1` device type.
 PYBIND11_MODULE(libpt_ocl, m) {
-    m.def("impl_custom_device", &ptdlprim::get_custom_device, "get custom device object");
-    m.def("impl_seed_all", &ptdlprim::seed_all, "Seed all devices");
-    m.def("impl_synchronize_device",&ptdlprim::synchronize_device,"Sychronize device");
-    m.def("impl_is_bad_fork",&ptdlprim::is_bad_fork,"True of forked process");
-    m.def("impl_empty_cache",&ptdlprim::empty_cache,"Clear all device cache");
-    m.def("impl_enable_profiling",&ptdlprim::enable_profiling,"Internal function use torch.ocl.enable_profiling(device)");
-    m.def("impl_start_profiling",&ptdlprim::start_profiling,"Internal function use torch.ocl.profile");
-    m.def("impl_stop_profiling",&ptdlprim::stop_profiling,"Internal function use torch.ocl.profile");
+    m.def("impl_custom_device", &at_torch::get_custom_device, "get custom device object");
+    m.def("impl_seed_all", &at_torch::seed_all, "Seed all devices");
+    m.def("impl_synchronize_device", &at_torch::synchronize_device,"Sychronize device");
+    m.def("impl_is_bad_fork", &at_torch::is_bad_fork,"True of forked process");
+    m.def("impl_empty_cache", &at_torch::empty_cache,"Clear all device cache");
+    m.def("impl_enable_profiling", &at_torch::enable_profiling,"Internal function use torch.ocl.enable_profiling(device)");
+    m.def("impl_start_profiling", &at_torch::start_profiling,"Internal function use torch.ocl.profile");
+    m.def("impl_stop_profiling", &at_torch::stop_profiling,"Internal function use torch.ocl.profile");
 }

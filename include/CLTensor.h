@@ -21,7 +21,7 @@
 #include <thread>
 #include <functional>
 
-namespace ptdlprim {
+namespace at_torch {
 
 // std::chrono header start
 #ifdef _GLIBCXX_USE_C99_STDINT_TR1

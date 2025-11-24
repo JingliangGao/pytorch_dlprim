@@ -5,7 +5,7 @@
 #endif
 
 
-namespace ptdlprim {
+namespace at_torch {
 
     int32_t getProcessId() {
     #ifdef _WIN32

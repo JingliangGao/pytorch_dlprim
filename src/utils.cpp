@@ -1,6 +1,6 @@
 #include "utils.h"
 
-namespace ptdlprim {
+namespace at_torch {
 
     dlprim::DataType todp(c10::ScalarType tp)
     {

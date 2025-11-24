@@ -3,6 +3,9 @@
 # set variables
 PROJECT_DIR=$(pwd)
 
+# clean screen
+clear
+
 # create folder
 build_folder=build_debug
 echo ">> [INFO]: Refresh build folder '${build_folder}' ..."
@@ -18,9 +21,22 @@ if [ -d ${install_folder} ]; then
 fi
 mkdir ${install_folder}
 
+# codegen process
+cd ${PROJECT_DIR}
+echo ">> [INFO]: Start codegen process ..."
+if [ -e ${PROJECT_DIR}/third_party/op-plugin/build-for-debug.sh ]; then
+    chmod +x ${PROJECT_DIR}/third_party/op-plugin/build-for-debug.sh
+    bash ${PROJECT_DIR}/third_party/op-plugin/build-for-debug.sh
+else
+    echo ">> [ERROR]: File 'third_party/op-plugin/build-for-debug.sh' not found, exit ..."
+    exit 1
+fi
+
+
 # build project
+cd ${PROJECT_DIR}
 cd ${build_folder}
-TorchDir=$(pip3 show torch | awk '/Location:/ {print $2}')
+TorchDir=$(pip3 show torch | awk '/Editable project location:/ {print $2}')
 PYROOT=$(python3 -c "import sys; print(sys.prefix)")
 PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
 
@@ -55,6 +71,7 @@ echo ">> [INFO]: Start installing ..."
 make install
 
 # set temporary variable
+cd ${PROJECT_DIR}
 echo ">> [INFO]: Set 'PYTHONPATH' path '${PROJECT_DIR}/${install_folder}/python' ..."
 export PYTHONPATH=${PROJECT_DIR}/${install_folder}/python:$PYTHONPATH
 echo ">> [INFO]: All finished."

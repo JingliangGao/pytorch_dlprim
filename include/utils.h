@@ -1,7 +1,7 @@
 #pragma once
 #include "CLTensor.h"
 
-namespace ptdlprim {
+namespace at_torch {
     /// 
     inline void sync_if_needed(c10::Device const &d)
     {

@@ -36,7 +36,9 @@ official:
   - func: abs(Tensor self) -> Tensor
   - func: abs.out(Tensor self, *, Tensor(a!) out) -> Tensor(a!)
   - func: sgn.out(Tensor self, *, Tensor(a!) out) -> Tensor(a!)
+  - func: cat.names_out(Tensor[] tensors, Dimname dim, *, Tensor(a!) out) -> Tensor(a!)
   - func: cat.out(Tensor[] tensors, int dim=0, *, Tensor(a!) out) -> Tensor(a!)
+    structured: true
   - func: hardswish_(Tensor(a!) self) -> Tensor(a!)
   - func: hardsigmoid.out(Tensor self, *, Tensor(a!) out) -> Tensor(a!)
   - func: hardsigmoid_backward.grad_input(Tensor grad_output, Tensor self, *, Tensor(a!) grad_input) -> Tensor(a!)
@@ -115,6 +117,11 @@ official:
   - func: _local_scalar_dense(Tensor self) -> Scalar
   - func: masked_select(Tensor self, Tensor mask) -> Tensor
   - func: resize_(Tensor(a!) self, SymInt[] size, *, MemoryFormat? memory_format=None) -> Tensor(a!)
+    use_const_ref_for_mutable_tensors: True
+    variants: method
+    device_check: NoCheck
+    device_guard: False
+  # - func: resize_as_(Tensor(a!) self, Tensor the_template, *, MemoryFormat? memory_format=None) -> Tensor(a!)
   - func: copy_(Tensor(a!) self, Tensor src, bool non_blocking=False) -> Tensor(a!)
   - func: to.device(Tensor(a) self, Device device, ScalarType dtype, bool non_blocking=False, bool copy=False, MemoryFormat? memory_format=None) -> Tensor(a)
   - func: to.dtype(Tensor(a) self, ScalarType dtype, bool non_blocking=False, bool copy=False, MemoryFormat? memory_format=None) -> Tensor(a)
@@ -143,6 +150,6 @@ official:
 
 
 deprecated:
-  - func: _cat
+  - func: _cat(Tensor[] tensors, int dim=0) -> Tensor
   - func: _native_multi_head_attention.out
 

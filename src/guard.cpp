@@ -1,6 +1,6 @@
 #include "utils.h"
 
-namespace ptdlprim {
+namespace at_torch {
     typedef void (*enter_type)(char const *name,char const*);
     typedef void (*leave_type)(char const *name);
     static dlprim::ExecutionContext *profiling_queue = nullptr;
