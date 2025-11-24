@@ -90,7 +90,7 @@ namespace op_plugin {
     }
 
 
-}  /* namespace op_plugin */
-}  /* namespace at_torch */
+  }  /* namespace op_plugin */
+}  /* namespace at_torch */ 
 
 

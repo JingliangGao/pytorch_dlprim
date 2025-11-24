@@ -17,10 +17,8 @@ __attribute__((constructor)) static void ptdlprim_library_init() {
     }
 }
 
-
-    using torch::Tensor;
-    
-    torch::Tensor allocate_empty(torch::IntArrayRef size, c10::optional<ScalarType> dtype, c10::optional<Layout> layout, c10::optional<Device> device, c10::optional<bool> /*pin_memory*/, c10::optional<MemoryFormat> /*memory_format*/)
+    // {"schema": "aten::empty(SymInt[] size, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None, MemoryFormat? memory_format=None) -> Tensor", "dispatch": "True", "default": "False"}
+    torch::Tensor empty(IntArrayRef size, ::std::optional<at::ScalarType> dtype, ::std::optional<at::Layout> layout, ::std::optional<at::Device> device, ::std::optional<bool> pin_memory, ::std::optional<at::MemoryFormat> memory_format)
     {
         GUARD;
         TORCH_CHECK(!layout || *layout == Layout::Strided,"pytorch_ocl supports only strided layout")
@@ -46,10 +44,10 @@ __attribute__((constructor)) static void ptdlprim_library_init() {
     }
 
 /// "aten::empty_strided"
-    Tensor empty_strided(torch::IntArrayRef size, torch::IntArrayRef stride, c10::optional<ScalarType> dtype, c10::optional<Layout> layout, c10::optional<Device> device, c10::optional<bool> pin_memory) 
+    Tensor empty_strided(IntArrayRef size, IntArrayRef stride, ::std::optional<at::ScalarType> dtype, ::std::optional<at::Layout> layout, ::std::optional<at::Device> device, ::std::optional<bool> pin_memory) 
     {
         GUARD;
-        Tensor r = allocate_empty(size,dtype,layout,device,pin_memory,c10::nullopt);
+        Tensor r = empty(size,dtype,layout,device,pin_memory,c10::nullopt);
         return at_torch::op_plugin::_reshape_alias(r,size,stride);
     }
 
@@ -192,7 +190,7 @@ __attribute__((constructor)) static void ptdlprim_library_init() {
     }
 
     // {"schema": "aten::copy_(Tensor(a!) self, Tensor src, bool non_blocking=False) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & copy_(Tensor & self, const Tensor & src, bool non_blocking=false) {
+    Tensor & copy_(Tensor & self, const Tensor & src, bool non_blocking) {
         GUARD;
 
         // If same storage / same tensor, nothing to do
@@ -368,16 +366,16 @@ __attribute__((constructor)) static void ptdlprim_library_init() {
     }
    
     // {"schema": "aten::set_.source_Storage_storage_offset(Tensor(a!) self, Storage source, SymInt storage_offset, SymInt[] size, SymInt[] stride=[]) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & set_source_storage_offset(Tensor & self, Storage source, c10::SymInt storage_offset, c10::SymIntArrayRef size, c10::SymIntArrayRef stride)
+    Tensor & set_(Tensor & self, Storage source, int64_t storage_offset, at::IntArrayRef size, at::IntArrayRef stride)
     {
         c10::intrusive_ptr<c10::TensorImpl> impl = self.getIntrusivePtr(); 
         impl->set_storage_keep_dtype(source);
-        impl->set_sizes_and_strides(size,stride,storage_offset);
+        impl->set_sizes_and_strides(size, stride, storage_offset);
         return self;
     }
 
     // {"schema": "aten::set_.source_Storage(Tensor(a!) self, Storage source) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & set_source_storage(Tensor & self, Storage source)
+    Tensor & set_(Tensor & self, Storage source)
     {
         c10::intrusive_ptr<c10::TensorImpl> impl = self.getIntrusivePtr(); 
         auto size = source.nbytes();
@@ -391,23 +389,21 @@ __attribute__((constructor)) static void ptdlprim_library_init() {
     }
 
     // {"schema": "aten::resize_(Tensor(a!) self, SymInt[] size, *, MemoryFormat? memory_format=None) -> Tensor(a!)", "dispatch": "True", "default": "False"}    
-    const Tensor & resize_(const Tensor & self, c10::SymIntArrayRef size, ::std::optional<MemoryFormat> memory_format)
+    const Tensor & resize_(const Tensor & self, at::IntArrayRef size, ::std::optional<at::MemoryFormat> memory_format)
     {
         if(memory_format) {
-            TORCH_CHECK(*memory_format == MemoryFormat::Contiguous,"resize_ only supports contiguous memory format");
+            TORCH_CHECK(*memory_format == MemoryFormat::Contiguous, "resize_ only supports contiguous memory format");
         }
         c10::intrusive_ptr<c10::TensorImpl> impl = self.getIntrusivePtr();
         c10::Storage const &storage = impl->storage();
         int64_t storage_size = storage.nbytes();
         at::DataPtr &data = storage.mutable_data_ptr();
-        int64_t new_size = -1;
 
+        int64_t new_size = 1;
         std::vector<int64_t> vsizes;
-        for(auto v:size) {
-            if(new_size == -1)
-                new_size = 1;
-            int64_t dim = v.expect_int();
-            new_size*=dim;
+        vsizes.reserve(size.size());
+        for (int64_t dim : size) {
+            new_size *= dim;
             vsizes.push_back(dim);
         }
         c10::ArrayRef<int64_t> sizes(vsizes.data(),vsizes.size());
@@ -490,8 +486,8 @@ __attribute__((constructor)) static void ptdlprim_library_init() {
         return r;
     }
 
-    // === aten::to overload for (Tensor self, Device device, ScalarType dtype, bool non_blocking, bool copy, MemoryFormat? memory_format)
-    at::Tensor to_device(
+    /* {"schema": "to.device(Tensor(a) self, Device device, ScalarType dtype, bool non_blocking=False, bool copy=False, MemoryFormat? memory_format=None) -> Tensor(a)" */
+    at::Tensor to(
         const at::Tensor& self,
         c10::Device device,
         at::ScalarType dtype,
@@ -509,8 +505,8 @@ __attribute__((constructor)) static void ptdlprim_library_init() {
         return to_impl_dlprim(self, opts, non_blocking, copy);
     }
 
-    // === aten::to overload for (Tensor self, ScalarType dtype, bool non_blocking, bool copy, MemoryFormat? memory_format)
-    at::Tensor to_dtype(
+    /* "schema": "to.dtype(Tensor(a) self, ScalarType dtype, bool non_blocking=False, bool copy=False, MemoryFormat? memory_format=None) -> Tensor(a)" */
+    at::Tensor to(
         const at::Tensor& self,
         at::ScalarType dtype,
         bool non_blocking,
@@ -518,14 +514,13 @@ __attribute__((constructor)) static void ptdlprim_library_init() {
         c10::optional<c10::MemoryFormat> optional_memory_format)
     {
         GUARD;
-        // 如果 dtype 相同且不强制 copy，直接返回
+
         if (self.dtype() == dtype && !copy) {
             return self;
         }
 
-        // 与 NPU 一致：若请求 double 而设备不支持 fp64，就降回 float
+
         if (dtype == at::ScalarType::Double) {
-            // 检查当前设备是否支持 double：对于 OpenCL，使用 CLContextManager::fp64 判断
             bool fp64_supported = true;
             if (self.device().type() == OpenCLDeviceType) {
                 fp64_supported = CLContextManager::fp64(self.device().index());
@@ -536,20 +531,19 @@ __attribute__((constructor)) static void ptdlprim_library_init() {
             }
         }
 
-        // 简单实现：创建一个与 self 大小相同但目标 dtype 的 tensor 并 copy_
+
         TensorOptions opts = self.options().dtype(dtype);
         if (optional_memory_format.has_value()) {
             opts = opts.memory_format(optional_memory_format.value());
         }
-        // 如果 device 未变化，仅 dtype_cast: 使用 make_contiguous_as_target_type 来保证正确性
+
         Tensor tmp = at::empty(self.sizes(), opts);
-        // 使用已有的 copy 逻辑（cpu <-> ocl 会在 _copy_from 内处理）
         tmp.copy_(self, non_blocking);
         return tmp;
     }
 
-    // === aten::to overload for (Tensor self, Tensor other, bool non_blocking, bool copy, MemoryFormat? memory_format)
-    at::Tensor to_other(
+    /* {"schema": "Tensor(a) self, Tensor other, bool non_blocking=False, bool copy=False, MemoryFormat? memory_format=None) -> Tensor(a)"}*/
+    at::Tensor to(
         const at::Tensor& self,
         const at::Tensor& other,
         bool non_blocking,
@@ -564,6 +558,5 @@ __attribute__((constructor)) static void ptdlprim_library_init() {
         return to_impl_dlprim(self, opts, non_blocking, copy);
     }
 
-}  /* namespace op_plugin */
+  }  /* namespace op_plugin */
 }  /* namespace at_torch */
-

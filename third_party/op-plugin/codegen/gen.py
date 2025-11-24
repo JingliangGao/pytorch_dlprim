@@ -1,6 +1,6 @@
 from collections import defaultdict
 from typing import (List, Dict, Optional, Set, Callable, Any,
-                    Union, TypeVar, Iterable, Tuple)
+                    Union, TypeVar, Iterable, Tuple, overload)
 from torchgen.model import NativeFunction, Argument, TensorOptionsArguments
 from torchgen.utils import Target, concatMap, context, NamespaceHelper
 from torchgen.api.types.signatures import NativeSignature, DispatcherSignature
@@ -58,23 +58,11 @@ def parse_native_yaml_struct(
     
     if 'official' not in es:
         raise AssertionError("Can't find official in yaml.")
-    # if 'symint' not in es:
-    #     raise AssertionError("Can't find symint in yaml.")
-    # if 'custom' not in es:
-    #     raise AssertionError("Can't find custom in yaml.")
-
-    # if es['symint']:
-    #     for e in es['symint']:
-    #         global SYMINT_SET
-    #         SYMINT_SET.add(e['func'].split("(")[0])
 
     all_funcs = []
     if es['official']:
         all_funcs += es['official']
-    # if es['custom']:
-    #     all_funcs += es['custom']
-    # if ('quant' in es) and es['quant']:
-    #     all_funcs += es['quant']
+
 
     if not isinstance(all_funcs, list):
         raise TypeError("all_funcs must be a list")
@@ -117,6 +105,7 @@ class SelfArgument:
 
 def gen_dispatch_return(
     f: NativeFunction,
+    type: str="raw_func",
 ) -> List[Optional[str]]:
     ret = []
     with native_function_manager(f):
@@ -134,14 +123,21 @@ def gen_dispatch_return(
         sig = NativeSignature(f.func, prefix='', symint=has_symint)
         args_exprs_str = ', '.join(a.name for a in sig.arguments())
 
-        impl_name = op_name
-        op_name = "wrapper_" + op_name
         ns = NAMESPACE
-        ret.append(f"""{sig.defn(name=op_name)}{{
+        impl_name = op_name
+        if type == "wrap_func":
+            overload = f.func.name.overload_name  
+            if overload:
+                impl_name = "wrapper_" + overload + "_" + impl_name
+            else:
+                impl_name = "wrapper_" + impl_name  
 
-    // insert profiler anchor
-    // at_torch::profiler::NPURecordFunction record("{impl_name}");
-    return {ns}::{impl_name}({args_exprs_str});
+
+        ret.append(f"""{sig.defn(name=impl_name)}{{
+
+    /* insert profiler anchor */
+    // at_torch::profiler::NPURecordFunction record("{op_name}");
+    return at_torch::{ns}::{op_name}({args_exprs_str});
 }}
 \n""")
 
@@ -157,6 +153,7 @@ def gen_dispatchkey_return(
         has_symint = False
         op_name_with_overload = str(f.func.name)
         op_name = str(f.func.name.name)
+
         global SYMINT_SET
         if f.func.is_out_fn():
             op_name += "_out"
@@ -164,19 +161,25 @@ def gen_dispatchkey_return(
             op_name += "_symint"
             has_symint = True
      
-
+        ns = NAMESPACE
         impl_name = op_name
-        op_name = "wrapper_" + op_name
+        overload = f.func.name.overload_name  
+        if overload:
+            impl_name = "wrapper_" + overload + "_" + impl_name
+        else:
+            impl_name = "wrapper_" + impl_name        
 
+        # register to different dispatch key
         aten_name = f"aten::{op_name_with_overload}"
         if aten_name in AllPrivateUse1_Op:
-            privateuse1_ret.add(f"""m.impl("{aten_name}", TORCH_FN({op_name}));""")
-            autogradprivateuse1_ret.add(f"""m.impl("aten::{op_name_with_overload}", TORCH_FN({op_name}));""")
+            privateuse1_ret.add(f"""m.impl("{aten_name}", TORCH_FN(at_torch::{ns}::{impl_name}));""")
+            autogradprivateuse1_ret.add(f"""m.impl("aten::{op_name_with_overload}", TORCH_FN(at_torch::{ns}::{impl_name}));""")
         elif aten_name in AutogradPrivateUse1_Op:
-            autogradprivateuse1_ret.add(f"""m.impl("aten::{op_name_with_overload}", TORCH_FN({op_name}));""")
+            autogradprivateuse1_ret.add(f"""m.impl("aten::{op_name_with_overload}", TORCH_FN(at_torch::{ns}::{impl_name}));""")
         else:
-            privateuse1_ret.add(f"""m.impl("{aten_name}", TORCH_FN({op_name}));""")
+            privateuse1_ret.add(f"""m.impl("{aten_name}", TORCH_FN(at_torch::{ns}::{impl_name}));""")
 
+    # return funcs in different dispatch key
     if type == "privateuse1":
         return sorted(list(privateuse1_ret))
     else:
@@ -194,7 +197,7 @@ def parse_native_yaml(
     for f in res:
         gen_function_declaration(f, backend_declarations)
 
-    dispatch_registrations_body = sorted(set(concatMap(lambda f: gen_dispatch_return(f), res)))
+    dispatch_registrations_body = sorted(set(concatMap(lambda f: gen_dispatch_return(f, "wrap_func"), res)))
     p_registrations_body = sorted(set(concatMap(lambda f: gen_dispatchkey_return(f, "privateuse1"), res)))
     ap_registrations_body = sorted(set(concatMap(lambda f: gen_dispatchkey_return(f, "autograd_privateuse1"), res)))
 

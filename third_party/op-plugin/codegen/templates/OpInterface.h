@@ -31,6 +31,11 @@ using torch::Tensor;
 using c10::Device;
 using c10::DeviceType;
 
+// Fallback for operators not implemented on this backend.
+// Declared here so generated registration code (Register.cpp) can reference it.
+void fallback(const c10::OperatorHandle& op, torch::jit::Stack* stack);
+
 ${declarations}
-}  /* namespace ${namespace} */
+
+  }  /* namespace ${namespace} */
 }  /* namespace at_torch */

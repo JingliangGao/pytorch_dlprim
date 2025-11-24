@@ -1,7 +1,14 @@
-#include <torch/library.h>        
-#include <ATen/core/ATenCoreAPI.h>  
-#include <ATen/ATen.h> 
-#include "op_plugin/generate/OpInterface.h"
+#include <torch/library.h>
+#include <ATen/ATen.h>
+#include "OpInterface.h"
+
+namespace at_torch {
+namespace ${namespace} {
+
+    ${declarations}
+    
+}
+}  /* namespace at_torch */ 
 
 TORCH_LIBRARY_IMPL(_, PrivateUse1, m) {
       m.fallback(torch::CppFunction::makeFromBoxedFunction<&at_torch::op_plugin::fallback>());

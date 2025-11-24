@@ -29,6 +29,19 @@ namespace op_plugin {
         return false;
     }
 
+    // {"schema": "aten::relu(Tensor self) -> Tensor", "dispatch": "True", "default": "True"}
+    Tensor relu(const Tensor & self)
+    {
+        GUARD;
+        Tensor self_c = self.contiguous();
+        dlprim::Tensor x = todp(self_c);
+        Tensor out = new_tensor_as(x.shape(), self);
+        dlprim::Tensor y = todp(out);
+        dlprim::core::activation_forward(x,y,dlprim::StandardActivations::relu, getExecutionContext(self));
+        sync_if_needed(self.device());
+        return out;
+    }
+
 
     Tensor & relu_(Tensor & self)
     {
@@ -85,12 +98,12 @@ namespace op_plugin {
     };
 
     template<dlprim::StandardActivations Act>
-    torch::Tensor act_autograd(torch::Tensor const &x) {
+    Tensor act_autograd(Tensor const &x) {
         GUARD;
         return act_cls<Act>::apply(x);
     }
 
-    Tensor & mul_scalar_(Tensor & self, const Scalar & other)
+    Tensor & mul_(Tensor & self, const Scalar & other)
     {
         GUARD;
         Tensor self_c = self.contiguous();
@@ -340,7 +353,7 @@ namespace op_plugin {
 
     }
 
-    Tensor & binary_op_out_tensor(const Tensor & self, const Tensor & other, Tensor & out,std::string const &op,std::string op_builder="")
+    Tensor & binary_op_out(const Tensor & self, const Tensor & other, Tensor & out,std::string const &op,std::string op_builder="")
     {
         GUARD;
         Tensor self_c  = self.contiguous(), out_c = out.contiguous(),
@@ -385,7 +398,7 @@ namespace op_plugin {
     Tensor & mul_out(const Tensor & self, const Tensor & other, Tensor & out)
     {
         GUARD;
-        return binary_op_out_tensor(self,other,out,"*");
+        return binary_op_out(self,other,out,"*");
     }
 
     // {"schema": "aten::addcdiv.out(Tensor self, Tensor tensor1, Tensor tensor2, *, Scalar value=1, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
@@ -622,85 +635,184 @@ namespace op_plugin {
         return unitary_op(self,out,"y0 = x0 < 0 ? -1 : (x0 > 0 ? 1 : 0) ;");
     }
 
-    template<typename TL>
-    Tensor &cat_internal(TL const &tensors, int64_t dim, Tensor &out, bool reuse)
+    // template<typename TL>
+    // Tensor &cat_internal(TL const &tensors, int64_t dim, Tensor &out, bool reuse)
+    // {
+    //     GUARD;
+
+    //     std::vector<dlprim::Tensor> list;
+    //     std::vector<Tensor> list_c;
+    //     for(auto const &t:tensors) {
+    //         list_c.push_back(t.contiguous());
+    //         list.push_back(todp(list_c.back()));
+    //     }
+    //     TORCH_CHECK(!list_c.empty());
+    //     Tensor &ref_tensor=list_c.front();
+
+    //     size_t total_shape = 0;
+    //     dlprim::Shape ref;
+
+    //     for(size_t i=0;i<list.size();i++) {
+    //         TORCH_CHECK(0<=dim && dim < list[i].shape().size(),"dim does not match shape")
+    //         if(i==0) {
+    //             ref = list[i].shape();
+    //         }
+    //         else {
+    //             dlprim::Shape s1 = ref, s2 = list[i].shape();
+    //             s1[dim]=1; s2[dim]=1;
+    //             TORCH_CHECK(s1==s2,"Shapes do not match");
+    //         }
+    //         total_shape+=list[i].shape()[dim];
+    //     }
+
+    //     ref[dim]=total_shape;
+        
+    //     dlprim::Tensor Y;
+    //     Tensor out_c;
+
+    //     if(reuse) {
+    //         out_c = out.contiguous();
+    //         Y = todp(out_c);
+    //         TORCH_CHECK(Y.shape() == ref,"Output shape is not correct for concatenation");
+    //     }
+    //     else {
+    //         out = new_tensor_as(ref,ref_tensor);
+    //         Y = todp(out);
+    //     }
+
+    //     dlprim::ExecutionContext q(getExecutionContext(ref_tensor));
+    //     dlprim::Context ctx(q);
+        
+
+    //     dlprim::core::SliceCopy cp(ctx,todp(out.dtype()));
+
+    //     for(size_t i=0,pos=0;i<list.size();i++) {
+    //         Tensor new_tensor;
+    //         dlprim::Tensor x;
+    //         // handle casting
+    //         if(list_c[i].dtype() != out.dtype()) {
+    //             new_tensor = list_c[i].to(out.dtype());
+    //             x=todp(new_tensor);
+    //         }
+    //         else
+    //             x=list[i];
+    //         size_t slice = list[i].shape()[dim];
+    //         cp.tensor_slice_copy(dim,slice,
+    //                                   Y,pos,
+    //                                   x,0,
+    //                                   0.0,q);
+    //         pos += slice;
+    //     }
+        
+    //     if (reuse && !out.is_contiguous())
+    //         out.copy_(out_c);
+        
+    //     sync_if_needed(ref_tensor.device());
+    //     return out;
+    // }
+
+    Tensor& cat_internal(const ITensorListRef& tensors, int64_t dim, Tensor& out, bool reuse)
     {
-        GUARD;
+        GUARD; 
+
         std::vector<dlprim::Tensor> list;
         std::vector<Tensor> list_c;
-        for(auto const &t:tensors) {
+
+        // iterate ITensorListRef normally
+        for (const Tensor& t : tensors) {
             list_c.push_back(t.contiguous());
             list.push_back(todp(list_c.back()));
         }
+
         TORCH_CHECK(!list_c.empty());
-        Tensor &ref_tensor=list_c.front();
+        Tensor &ref_tensor = list_c.front();
+
         size_t total_shape = 0;
         dlprim::Shape ref;
-        for(size_t i=0;i<list.size();i++) {
-            TORCH_CHECK(0<=dim && dim < list[i].shape().size(),"dim does not match shape")
-            if(i==0) {
+
+        // shape checks
+        for (size_t i = 0; i < list.size(); i++) {
+            TORCH_CHECK(0 <= dim && dim < list[i].shape().size(),
+                        "dim does not match shape");
+
+            if (i == 0) {
                 ref = list[i].shape();
-            }
-            else {
+            } else {
                 dlprim::Shape s1 = ref, s2 = list[i].shape();
-                s1[dim]=1; s2[dim]=1;
-                TORCH_CHECK(s1==s2,"Shapes do not match");
+                s1[dim] = 1;
+                s2[dim] = 1;
+                TORCH_CHECK(s1 == s2, "Shapes do not match");
             }
-            total_shape+=list[i].shape()[dim];
+            total_shape += list[i].shape()[dim];
         }
-        ref[dim]=total_shape;
+
+        ref[dim] = total_shape;
+
         dlprim::Tensor Y;
         Tensor out_c;
-        if(reuse) {
+
+        if (reuse) {
             out_c = out.contiguous();
             Y = todp(out_c);
-            TORCH_CHECK(Y.shape() == ref,"Output shape is not correct for concatenation");
-        }
-        else {
-            out = new_tensor_as(ref,ref_tensor);
+            TORCH_CHECK(Y.shape() == ref, "Output shape incorrect for concat");
+        } else {
+            out = new_tensor_as(ref, ref_tensor);
             Y = todp(out);
         }
+
         dlprim::ExecutionContext q(getExecutionContext(ref_tensor));
         dlprim::Context ctx(q);
-        
 
-        dlprim::core::SliceCopy cp(ctx,todp(out.dtype()));
-        for(size_t i=0,pos=0;i<list.size();i++) {
+        dlprim::core::SliceCopy cp(ctx, todp(out.dtype()));
+
+        size_t pos = 0;
+        for (size_t i = 0; i < list.size(); i++) {
             Tensor new_tensor;
             dlprim::Tensor x;
-            // handle casting
-            if(list_c[i].dtype() != out.dtype()) {
+
+            if (list_c[i].dtype() != out.dtype()) {
                 new_tensor = list_c[i].to(out.dtype());
-                x=todp(new_tensor);
+                x = todp(new_tensor);
+            } else {
+                x = list[i];
             }
-            else
-                x=list[i];
+
             size_t slice = list[i].shape()[dim];
-            cp.tensor_slice_copy(dim,slice,
-                                      Y,pos,
-                                      x,0,
-                                      0.0,q);
+            cp.tensor_slice_copy(dim, slice,
+                                 Y, pos,
+                                 x, 0,
+                                 0.0, q);
             pos += slice;
         }
-        
+
         if (reuse && !out.is_contiguous())
             out.copy_(out_c);
-        
+
         sync_if_needed(ref_tensor.device());
+
         return out;
     }
 
+
     // {"schema": "aten::cat.out(Tensor[] tensors, int dim=0, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & cat_out(const ITensorListRef & tensors, int64_t dim, Tensor & out)
+
+    Tensor & cat_out(const ITensorListRef & tensors, int64_t dim, at::Tensor & out)
     {
         GUARD;
-        cat_internal(tensors,dim,out,true);
+        cat_internal(tensors, dim, out, true);
 		return out;
+    }
+
+    at::Tensor& cat_out(TensorList tensors, Dimname dim, Tensor& result)
+    {
+        TORCH_CHECK(tensors.size() > 0, "cat inputs should not be empty." );
+        return at::cat_out(result, tensors, dimname_to_position(tensors[0], dim));
     }
     
 
 
     // {"schema": "aten::_cat(Tensor[] tensors, int dim=0) -> Tensor", "dispatch": "True", "default": "False"}
+                 
     Tensor _cat(TensorList tensors, int64_t dim)
     {
         GUARD;
@@ -1174,29 +1286,29 @@ namespace op_plugin {
     }
 
 
-    Tensor & ne_out_tensor(const Tensor & self, const Tensor & other, Tensor & out)
+    Tensor & ne_out(const Tensor & self, const Tensor & other, Tensor & out)             
     {
-        return binary_op_out_tensor(self,other,out,"!=");
+        return binary_op_out(self,other,out,"!=");
     }
-    Tensor & eq_out_tensor(const Tensor & self, const Tensor & other, Tensor & out)
+    Tensor & eq_out(const Tensor & self, const Tensor & other, Tensor & out)
     {
-        return binary_op_out_tensor(self,other,out,"==");
+        return binary_op_out(self,other,out,"==");
     }
-    Tensor & lt_out_tensor(const Tensor & self, const Tensor & other, Tensor & out)
+    Tensor & lt_out(const Tensor & self, const Tensor & other, Tensor & out)
     {
-        return binary_op_out_tensor(self,other,out,"<");
+        return binary_op_out(self,other,out,"<");
     }
-    Tensor & le_out_tensor(const Tensor & self, const Tensor & other, Tensor & out)
+    Tensor & le_out(const Tensor & self, const Tensor & other, Tensor & out)
     {
-        return binary_op_out_tensor(self,other,out,"<=");
+        return binary_op_out(self,other,out,"<=");
     }
-    Tensor & gt_out_tensor(const Tensor & self, const Tensor & other, Tensor & out)
+    Tensor & gt_out(const Tensor & self, const Tensor & other, Tensor & out)
     {
-        return binary_op_out_tensor(self,other,out,">");
+        return binary_op_out(self,other,out,">");
     }
-    Tensor & ge_out_tensor(const Tensor & self, const Tensor & other, Tensor & out)
+    Tensor & ge_out(const Tensor & self, const Tensor & other, Tensor & out)
     {
-        return binary_op_out_tensor(self,other,out,">=");
+        return binary_op_out(self,other,out,">=");
     }
 
     // {"schema": "aten::eq.Scalar_out(Tensor self, Scalar other, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
@@ -1224,21 +1336,21 @@ namespace op_plugin {
     {
         GUARD;
         TORCH_CHECK(is_integer(self,true) && is_integer(other,true),"& is not valid for floating point");
-        return binary_op_out_tensor(self,other,out,(self.dtype() == c10::kBool ? "&&" : "&"));
+        return binary_op_out(self,other,out,(self.dtype() == c10::kBool ? "&&" : "&"));
     }
     // {"schema": "aten::bitwise_or.Tensor_out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
     Tensor & bitwise_or_out(const Tensor & self, const Tensor & other, Tensor & out)
     {
         GUARD;
         TORCH_CHECK(is_integer(self,true) && is_integer(other,true),"| is not valid for floating point");
-        return binary_op_out_tensor(self,other,out,(self.dtype() == c10::kBool ? "||" : "|"));
+        return binary_op_out(self,other,out,(self.dtype() == c10::kBool ? "||" : "|"));
     }
     // {"schema": "aten::bitwise_xor.Tensor_out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
     Tensor & bitwise_xor_out(const Tensor & self, const Tensor & other, Tensor & out)
     {
         GUARD;
         TORCH_CHECK(is_integer(self,true) && is_integer(other,true),"^ is not valid for floating point");
-        return binary_op_out_tensor(self,other,out,(self.dtype() == c10::kBool ? "!=" : "^"));
+        return binary_op_out(self,other,out,(self.dtype() == c10::kBool ? "!=" : "^"));
     }
     // {"schema": "aten::bitwise_not.out(Tensor self, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
     Tensor & bitwise_not_out(const Tensor & self, Tensor & out)
@@ -1442,13 +1554,13 @@ namespace op_plugin {
     Tensor & maximum_out(const Tensor & self, const Tensor & other, Tensor & out)
     {
         GUARD;
-        return binary_op_out_tensor(self,other,out,"","y0 = max(left,right); ");
+        return binary_op_out(self,other,out,"","y0 = max(left,right); ");
     }
     // {"schema": "aten::minimum.out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
     Tensor & minimum_out(const Tensor & self, const Tensor & other, Tensor & out)
     {
         GUARD;
-        return binary_op_out_tensor(self,other,out,"","y0 = min(left,right); ");
+        return binary_op_out(self,other,out,"","y0 = min(left,right); ");
     }
 
    // {"schema": "aten::log_sigmoid_forward.output(Tensor self, *, Tensor(a!) output, Tensor(b!) buffer) -> (Tensor(a!), Tensor(b!))", "dispatch": "True", "default": "False"
@@ -1524,14 +1636,5 @@ namespace op_plugin {
         return grad_input;
     }
 
-
-    Tensor relu(const Tensor & self) {
-        return act_autograd<dlprim::StandardActivations::relu>;
-    }
-
-
 }  /* namespace op_plugin */
-}  /* namespace at_torch */
-
-
-
+}  /* namespace at_torch */ 

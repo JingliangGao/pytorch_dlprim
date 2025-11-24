@@ -152,11 +152,11 @@ namespace op_plugin {
     }
 
     // {"schema": "aten::native_layer_norm(Tensor input, SymInt[] normalized_shape, Tensor? weight, Tensor? bias, float eps) -> (Tensor, Tensor, Tensor)", "dispatch": "True", "default": "True"}
-    std::tuple<Tensor,Tensor,Tensor> native_layer_norm(const Tensor & input, c10::SymIntArrayRef normalized_shape, const c10::optional<Tensor> & weight, const c10::optional<Tensor> & bias, double eps)
+    std::tuple<Tensor,Tensor,Tensor> native_layer_norm(const Tensor & input, at::IntArrayRef normalized_shape, const c10::optional<Tensor> & weight, const c10::optional<Tensor> & bias, double eps)
     {
         int N = 1;
         for(auto v:normalized_shape) {
-            N*=v.expect_int();
+            N *= v;
         }
 
         bool weight_present = weight && weight->numel()>0; 
@@ -225,7 +225,7 @@ namespace op_plugin {
     std::tuple<Tensor,Tensor,Tensor> native_layer_norm_backward(
             const Tensor & grad_out,
             const Tensor & input,
-            c10::SymIntArrayRef normalized_shape,
+            at::IntArrayRef normalized_shape,
             const Tensor & save_mean,
             const Tensor & save_rstd,
             const c10::optional<Tensor> & weight,
@@ -236,8 +236,8 @@ namespace op_plugin {
         int N = 1;
         std::vector<int> ns;
         for(auto v:normalized_shape) {
-            ns.push_back(v.expect_int());
-            N*=v.expect_int();
+            ns.push_back(v);
+            N *= v;
         }
         dlprim::Shape norm_shape = dlprim::Shape::from_range(ns.begin(),ns.end());
 
