@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 project(pytorch_opencl)
 find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
-find_package(Torch 1.13 REQUIRED)
+find_package(Torch REQUIRED)
 find_package(fmt REQUIRED)
 
 # Find fmt library
