@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(pytorch_opencl)
+project(pytorch_dlprim)
 find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
 find_package(Torch REQUIRED)
 find_package(fmt REQUIRED)
@@ -27,9 +27,11 @@ option(BUILD_EXAMPLES "Build example programs" OFF)
 add_subdirectory(third_party/dlprimitives)
 include_directories("${OCL_PATH}")
 include_directories(${Python3_INCLUDE_DIRS})
+
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/third_party/dlprimitives)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/dlprimitives/include)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/op-plugin/op_plugin/generate)
 message("  Pytorch libraries ${TORCH_LIBRARIES}")
 message("  Python libraries ${PYTHON_LIBRARIES}")
 message("  Python include ${Python3_INCLUDE_DIRS}")
@@ -42,12 +44,14 @@ endif()
 # Define our library target
 if(ALLOW_PYBIND)
     add_library(libpt_ocl SHARED 
-            third_party/op-plugin/src/pointwise_ops.cpp
-            third_party/op-plugin/src/tensor_ops.cpp
-            third_party/op-plugin/src/vision_ops.cpp
-            third_party/op-plugin/src/loss_ops.cpp
-            third_party/op-plugin/src/random_ops.cpp
-            third_party/op-plugin/src/norm_ops.cpp
+            third_party/op-plugin/op_plugin/ops/common_ops.cpp
+            third_party/op-plugin/op_plugin/ops/pointwise_ops.cpp
+            third_party/op-plugin/op_plugin/ops/tensor_ops.cpp
+            third_party/op-plugin/op_plugin/ops/vision_ops.cpp
+            third_party/op-plugin/op_plugin/ops/loss_ops.cpp
+            third_party/op-plugin/op_plugin/ops/random_ops.cpp
+            third_party/op-plugin/op_plugin/ops/norm_ops.cpp
+            third_party/op-plugin/op_plugin/generate/RegisterOps.cpp
             src/utils.cpp
             src/registeration.cpp
             src/CLTensor.cpp
@@ -56,12 +60,14 @@ if(ALLOW_PYBIND)
             )
 else()
     add_library(libpt_ocl SHARED 
-            third_party/op-plugin/src/pointwise_ops.cpp
-            third_party/op-plugin/src/tensor_ops.cpp
-            third_party/op-plugin/src/vision_ops.cpp
-            third_party/op-plugin/src/loss_ops.cpp
-            third_party/op-plugin/src/random_ops.cpp
-            third_party/op-plugin/src/norm_ops.cpp
+            third_party/op-plugin/op_plugin/ops/common_ops.cpp
+            third_party/op-plugin/op_plugin/ops/pointwise_ops.cpp
+            third_party/op-plugin/op_plugin/ops/tensor_ops.cpp
+            third_party/op-plugin/op_plugin/ops/vision_ops.cpp
+            third_party/op-plugin/op_plugin/ops/loss_ops.cpp
+            third_party/op-plugin/op_plugin/ops/random_ops.cpp
+            third_party/op-plugin/op_plugin/ops/norm_ops.cpp
+            third_party/op-plugin/op_plugin/generate/RegisterOps.cpp
             src/utils.cpp
             src/registeration.cpp
             src/CLTensor.cpp
