@@ -34,9 +34,9 @@ namespace op_plugin {
         }
     }
 
-    Tensor convolution_overrideable(const Tensor & input,
-                                    const Tensor & weight,
-                                    const c10::optional<Tensor> & bias,
+    at::Tensor convolution_overrideable(const at::Tensor & input,
+                                    const at::Tensor & weight,
+                                    const c10::optional<at::Tensor> & bias,
                                     IntArrayRef stride,
                                     IntArrayRef padding,
                                     IntArrayRef dilation,
@@ -45,7 +45,7 @@ namespace op_plugin {
                                     int64_t groups)
     {
         GUARD;
-        Tensor X_tmp = input.contiguous();
+        at::Tensor X_tmp = input.contiguous();
         dlprim::Tensor X = todp(X_tmp);
         dlprim::Tensor W = todp(weight);
         dlprim::Tensor B;
@@ -60,7 +60,7 @@ namespace op_plugin {
 
         dlprim::ExecutionContext q = getExecutionContext(input);
         dlprim::Context ctx(q);
-        torch::Tensor result;
+        at::Tensor result;
         if(!transposed) {
             auto conv = dlprim::core::Conv2DForward::create(ctx,cfg,with_bias);
             WSGuard wsg(conv->workspace(),input.device());
@@ -88,11 +88,11 @@ namespace op_plugin {
         return result;
     }
 
-    // {"schema": "aten::convolution_backward_overrideable(Tensor grad_output, Tensor input, Tensor weight, int[] stride, int[] padding, int[] dilation, bool transposed, int[] output_padding, int groups, bool[3] output_mask) -> (Tensor grad_input, Tensor grad_weight, Tensor grad_bias)", "dispatch": "True", "default": "True"}
-    ::std::tuple<Tensor,Tensor,Tensor> convolution_backward_overrideable(const Tensor & grad_output, const Tensor & input, const Tensor & weight, IntArrayRef stride, IntArrayRef padding, IntArrayRef dilation, bool transposed, IntArrayRef output_padding, int64_t groups, ::std::array<bool,3> output_mask)
+    // {"schema": "aten::convolution_backward_overrideable(at::Tensor grad_output, at::Tensor input, at::Tensor weight, int[] stride, int[] padding, int[] dilation, bool transposed, int[] output_padding, int groups, bool[3] output_mask) -> (at::Tensor grad_input, at::Tensor grad_weight, at::Tensor grad_bias)", "dispatch": "True", "default": "True"}
+    ::std::tuple<at::Tensor,at::Tensor,at::Tensor> convolution_backward_overrideable(const at::Tensor & grad_output, const at::Tensor & input, const at::Tensor & weight, IntArrayRef stride, IntArrayRef padding, IntArrayRef dilation, bool transposed, IntArrayRef output_padding, int64_t groups, ::std::array<bool,3> output_mask)
     {
         GUARD;
-        Tensor grad_output_c = grad_output.contiguous(), input_c = input.contiguous();
+        at::Tensor grad_output_c = grad_output.contiguous(), input_c = input.contiguous();
         dlprim::Tensor dy = todp(grad_output_c);
         dlprim::Tensor x  = todp(input_c);
         dlprim::Tensor W  = todp(weight);
@@ -106,7 +106,7 @@ namespace op_plugin {
         std::unique_ptr<dlprim::core::Conv2DBackwardFilter> bwd_filter;
         std::unique_ptr<dlprim::core::BiasBackwardFilter> bwd_bias;
 
-        torch::Tensor data_diff,filter_diff,bias_diff;
+        at::Tensor data_diff,filter_diff,bias_diff;
 
         if(transposed)
             std::swap(cfg.channels_out,cfg.channels_in);
@@ -158,18 +158,18 @@ namespace op_plugin {
         
         sync_if_needed(grad_output.device());
 
-        return std::tuple<torch::Tensor,torch::Tensor,torch::Tensor>(data_diff,filter_diff,bias_diff);
+        return std::tuple<at::Tensor,at::Tensor,at::Tensor>(data_diff,filter_diff,bias_diff);
     }
 
-    Tensor _adaptive_avg_pool2d(const Tensor & self, IntArrayRef output_size) 
+    at::Tensor _adaptive_avg_pool2d(const at::Tensor & self, IntArrayRef output_size) 
     {
         GUARD;
-        Tensor self_c = self.contiguous();
+        at::Tensor self_c = self.contiguous();
         dlprim::Tensor X = todp(self_c);
         int h=X.shape()[2];
         int w=X.shape()[3];
         TORCH_CHECK((output_size[0]==1 && output_size[1]==1) || (output_size[0]==h && output_size[1]==w),"Only global pooling or no-pooling supported");
-        Tensor result;
+        at::Tensor result;
         if(output_size[0]==1 && output_size[1] == 1) {
             result = new_tensor_as(dlprim::Shape(X.shape()[0],X.shape()[1],1,1),self);
             dlprim::Tensor Y = todp(result);
@@ -188,15 +188,15 @@ namespace op_plugin {
         return result;
     }
     
-    // {"schema": "aten::_adaptive_avg_pool2d_backward(Tensor grad_output, Tensor self) -> Tensor", "dispatch": "True", "default": "False"}
-    Tensor _adaptive_avg_pool2d_backward(const Tensor & grad_output, const Tensor & self)
+    // {"schema": "aten::_adaptive_avg_pool2d_backward(at::Tensor grad_output, at::Tensor self) -> at::Tensor", "dispatch": "True", "default": "False"}
+    at::Tensor _adaptive_avg_pool2d_backward(const at::Tensor & grad_output, const at::Tensor & self)
     {
         GUARD;
-        Tensor self_c = self.contiguous();
-        Tensor grad_output_c = grad_output.contiguous();
+        at::Tensor self_c = self.contiguous();
+        at::Tensor grad_output_c = grad_output.contiguous();
         dlprim::Tensor X = todp(self_c);
         dlprim::Tensor dy = todp(grad_output_c);
-        torch::Tensor result;
+        at::Tensor result;
         TORCH_CHECK((dy.shape()[2]==1 && dy.shape()[3]==1) || (dy.shape() == X.shape()),"Only global pooling or no-pooling supported");
         if(dy.shape()[2]==1 && dy.shape()[3]==1) {
             result = new_tensor_as(X.shape(),self);
@@ -218,16 +218,16 @@ namespace op_plugin {
 
     class linear_cls : public torch::autograd::Function<linear_cls> {
     public:
-        static Tensor forward(AutogradContext *ctx,const Tensor & input, const Tensor & weight, const c10::optional<Tensor> & bias)
+        static at::Tensor forward(AutogradContext *ctx,const at::Tensor & input, const at::Tensor & weight, const c10::optional<at::Tensor> & bias)
         {
             return linear_forward(ctx,input,weight,bias);
         }
-        static Tensor linear_forward(AutogradContext *ctx,const Tensor & input, const Tensor & weight, const c10::optional<Tensor> & bias)
+        static at::Tensor linear_forward(AutogradContext *ctx,const at::Tensor & input, const at::Tensor & weight, const c10::optional<at::Tensor> & bias)
         {
             GUARD;
             at::AutoDispatchBelowADInplaceOrView g;
 
-            Tensor cinput = input.contiguous();
+            at::Tensor cinput = input.contiguous();
             dlprim::Tensor X = todp(cinput);
             dlprim::Tensor W = todp(weight);
             dlprim::Shape os = X.shape();
@@ -238,7 +238,7 @@ namespace op_plugin {
             
             os[os.size()-1] = fo;
 
-            Tensor result = new_tensor_as(os,input);
+            at::Tensor result = new_tensor_as(os,input);
             dlprim::Tensor Y = todp(result);
             dlprim::ExecutionContext q = getExecutionContext(input);
             dlprim::Context dlprim_ctx(q);
@@ -273,14 +273,14 @@ namespace op_plugin {
             int fo = W.shape()[0];
             int batch = X.shape().total_size()/fi;
 
-            Tensor dy_tensor = grad_outputs[0].contiguous();
+            at::Tensor dy_tensor = grad_outputs[0].contiguous();
             dlprim::Tensor dY = todp(dy_tensor);
             auto grad_output = grad_outputs[0];
 
-            torch::Tensor dx_tensor = new_tensor_as(X.shape(),dy_tensor);
+            at::Tensor dx_tensor = new_tensor_as(X.shape(),dy_tensor);
             dlprim::Tensor dX = todp(dx_tensor);
 
-            torch::Tensor dW_tensor = new_tensor_as(W.shape(),dy_tensor);
+            at::Tensor dW_tensor = new_tensor_as(W.shape(),dy_tensor);
             dlprim::Tensor dW = todp(dW_tensor);
 
             dlprim::core::IPSettings cfg;
@@ -306,7 +306,7 @@ namespace op_plugin {
             bwd_filter->enqueue(X,dW,dY,0,q);
 
             bool has_bias = ctx->saved_data["has_bias"].toBool();
-            torch::Tensor dB_tensor;
+            at::Tensor dB_tensor;
             if(has_bias) {
                 dB_tensor = new_tensor_as(dlprim::Shape(W.shape()[0]),dy_tensor);
                 dlprim::Tensor dB=todp(dB_tensor);
@@ -320,7 +320,7 @@ namespace op_plugin {
             return {dx_tensor,dW_tensor,dB_tensor};
         }
     };
-    Tensor linear(const Tensor & input, const Tensor & weight, const c10::optional<Tensor> & bias)
+    at::Tensor linear(const at::Tensor & input, const at::Tensor & weight, const c10::optional<at::Tensor> & bias)
     {
         GUARD;
         return linear_cls::apply(input,weight,bias);
@@ -328,12 +328,12 @@ namespace op_plugin {
 
     class max_pool2d_cls : public torch::autograd::Function<max_pool2d_cls> {
     public:
-        static torch::Tensor forward(AutogradContext *ctx,torch::Tensor const &self, IntArrayRef kernel_size, IntArrayRef stride, IntArrayRef padding, IntArrayRef dilation, bool ceil_mode)
+        static at::Tensor forward(AutogradContext *ctx,at::Tensor const &self, IntArrayRef kernel_size, IntArrayRef stride, IntArrayRef padding, IntArrayRef dilation, bool ceil_mode)
         {
             return max_pool2d_forward(ctx,self,kernel_size,stride,padding,dilation,ceil_mode);
         }
 
-        static torch::Tensor max_pool2d_forward(AutogradContext *ctx,torch::Tensor const &self, IntArrayRef kernel_size, IntArrayRef stride, IntArrayRef padding, IntArrayRef dilation, bool ceil_mode) 
+        static at::Tensor max_pool2d_forward(AutogradContext *ctx,at::Tensor const &self, IntArrayRef kernel_size, IntArrayRef stride, IntArrayRef padding, IntArrayRef dilation, bool ceil_mode) 
         {
             GUARD;
             at::AutoDispatchBelowADInplaceOrView g;
@@ -353,7 +353,7 @@ namespace op_plugin {
                 strd[1] = kernel[1];
             }
 
-            torch::Tensor self_cont = self.contiguous();
+            at::Tensor self_cont = self.contiguous();
             dlprim::Tensor X = todp(self_cont);
             dlprim::Shape x_shape = X.shape();
             dlprim::Shape y_shape = dlprim::Shape(
@@ -362,7 +362,7 @@ namespace op_plugin {
                     dlprim::core::calc_pooling_output_size(x_shape[2],kernel[0],pad[0],strd[0],ceil_mode),
                     dlprim::core::calc_pooling_output_size(x_shape[3],kernel[1],pad[1],strd[1],ceil_mode));
 
-            torch::Tensor out = new_tensor_as(y_shape,self);
+            at::Tensor out = new_tensor_as(y_shape,self);
 
             dlprim::Tensor Y = todp(out);
             dlprim::ExecutionContext q = getExecutionContext(self);
@@ -386,8 +386,8 @@ namespace op_plugin {
         }
         static tensor_list max_pool_2d_backward(AutogradContext *ctx, tensor_list grad_outputs) {
             GUARD;
-            torch::Tensor grad_output = grad_outputs[0];
-            torch::Tensor input = ctx->get_saved_variables()[0];
+            at::Tensor grad_output = grad_outputs[0];
+            at::Tensor input = ctx->get_saved_variables()[0];
             int kernel[2],pad[2],strd[2];
             kernel[0] = ctx->saved_data["kernel_0"].toInt();
             kernel[1] = ctx->saved_data["kernel_1"].toInt();
@@ -398,10 +398,10 @@ namespace op_plugin {
             strd[0] = ctx->saved_data["strd_0"].toInt();
             strd[1] = ctx->saved_data["strd_1"].toInt();
             
-            Tensor grad_output_c = grad_output.contiguous(),input_c = input.contiguous();
+            at::Tensor grad_output_c = grad_output.contiguous(),input_c = input.contiguous();
             dlprim::Tensor dy=todp(grad_output_c);
             dlprim::Tensor x=todp(input_c);
-            torch::Tensor grad_input = new_tensor_as(x.shape(),grad_output);
+            at::Tensor grad_input = new_tensor_as(x.shape(),grad_output);
             dlprim::Tensor dx = todp(grad_input);
 
             dlprim::ExecutionContext q = getExecutionContext(grad_output);
@@ -410,18 +410,18 @@ namespace op_plugin {
             auto pool=dlprim::core::MaxPooling2DBackward::create(dlprim_ctx,kernel,pad,strd,todp(input.dtype()));
             pool->enqueue(x,dx,dy,0,q);
             sync_if_needed(grad_output.device());
-            return {grad_input,torch::Tensor(),torch::Tensor(),torch::Tensor(),torch::Tensor(),torch::Tensor()};
+            return {grad_input,at::Tensor(),at::Tensor(),at::Tensor(),at::Tensor(),at::Tensor()};
         }
     };
 
-    // {"schema": "aten::max_pool2d(Tensor self, int[2] kernel_size, int[2] stride=[], int[2] padding=0, int[2] dilation=1, bool ceil_mode=False) -> Tensor", "dispatch": "False", "default": "True"}
-    torch::Tensor max_pool2d(torch::Tensor const &self, IntArrayRef kernel_size, IntArrayRef stride, IntArrayRef padding, IntArrayRef dilation, bool ceil_mode) {
+    // {"schema": "aten::max_pool2d(at::Tensor self, int[2] kernel_size, int[2] stride=[], int[2] padding=0, int[2] dilation=1, bool ceil_mode=False) -> at::Tensor", "dispatch": "False", "default": "True"}
+    at::Tensor max_pool2d(at::Tensor const &self, IntArrayRef kernel_size, IntArrayRef stride, IntArrayRef padding, IntArrayRef dilation, bool ceil_mode) {
         GUARD;
         return max_pool2d_cls::apply(self,kernel_size,stride,padding,dilation,ceil_mode);
     }
 
-    // {"schema": "aten::avg_pool2d.out(Tensor self, int[2] kernel_size, int[2] stride=[], int[2] padding=0, bool ceil_mode=False, bool count_include_pad=True, int? divisor_override=None, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & avg_pool2d_out(const Tensor & self, IntArrayRef kernel_size, IntArrayRef stride, IntArrayRef padding, bool /*ceil_mode*/, bool count_include_pad, c10::optional<int64_t> divisor_override, Tensor & out)
+    // {"schema": "aten::avg_pool2d.out(at::Tensor self, int[2] kernel_size, int[2] stride=[], int[2] padding=0, bool ceil_mode=False, bool count_include_pad=True, int? divisor_override=None, *, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & avg_pool2d_out(const at::Tensor & self, IntArrayRef kernel_size, IntArrayRef stride, IntArrayRef padding, bool /*ceil_mode*/, bool count_include_pad, c10::optional<int64_t> divisor_override, at::Tensor & out)
     {
         GUARD;
         TORCH_CHECK(!divisor_override,"Divisor override is not implemented");
@@ -437,7 +437,7 @@ namespace op_plugin {
             strd[0]=stride[0];
             strd[1]=stride[1];
         };
-        Tensor self_c = self.contiguous();
+        at::Tensor self_c = self.contiguous();
         dlprim::Tensor X=todp(self_c);
         dlprim::Tensor Y=todp(out);
         dlprim::ExecutionContext q(getExecutionContext(self));
@@ -453,8 +453,8 @@ namespace op_plugin {
         return out;
     }
 
-    // {"schema": "aten::avg_pool2d_backward.grad_input(Tensor grad_output, Tensor self, int[2] kernel_size, int[2] stride, int[2] padding, bool ceil_mode, bool count_include_pad, int? divisor_override, *, Tensor(a!) grad_input) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & avg_pool2d_backward_out(const Tensor & grad_output, const Tensor & self, IntArrayRef kernel_size, IntArrayRef stride, IntArrayRef padding, bool ceil_mode, bool count_include_pad, c10::optional<int64_t> divisor_override, Tensor & grad_input)
+    // {"schema": "aten::avg_pool2d_backward.grad_input(at::Tensor grad_output, at::Tensor self, int[2] kernel_size, int[2] stride, int[2] padding, bool ceil_mode, bool count_include_pad, int? divisor_override, *, at::Tensor(a!) grad_input) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & avg_pool2d_backward_out(const at::Tensor & grad_output, const at::Tensor & self, IntArrayRef kernel_size, IntArrayRef stride, IntArrayRef padding, bool ceil_mode, bool count_include_pad, c10::optional<int64_t> divisor_override, at::Tensor & grad_input)
     {
         GUARD;
         TORCH_CHECK(ceil_mode==false,"Ceil mode=true not implemented");
@@ -470,7 +470,7 @@ namespace op_plugin {
             strd[0]=stride[0];
             strd[1]=stride[1];
         };
-        Tensor grad_output_c = grad_output.contiguous();
+        at::Tensor grad_output_c = grad_output.contiguous();
         dlprim::Tensor dY=todp(grad_output_c);
         dlprim::Tensor dX=todp(grad_input);
         dlprim::ExecutionContext q(getExecutionContext(self));
@@ -486,7 +486,7 @@ namespace op_plugin {
         return grad_input;
     }
 
-    static Tensor get_bmm_mm_valid_tensor(Tensor const &t,bool &transposed,int &ld,bool &copied,int bmm,char /*M*/)
+    static at::Tensor get_bmm_mm_valid_tensor(at::Tensor const &t,bool &transposed,int &ld,bool &copied,int bmm,char /*M*/)
     {
         auto sizes= t.sizes();
         auto strides = t.strides();
@@ -514,10 +514,10 @@ namespace op_plugin {
         return t.contiguous();
     }
 
-    Tensor & mm_bmm_out(const Tensor & self, const Tensor & mat2, Tensor & out,int bmm)
+    at::Tensor & mm_bmm_out(const at::Tensor & self, const at::Tensor & mat2, at::Tensor & out,int bmm)
     {
         GUARD;
-        Tensor A,B,C;
+        at::Tensor A,B,C;
         bool At=false,Bt=false,Ct=false,Ac,Bc,Cc;
         int lda,ldb,ldc;
         A = get_bmm_mm_valid_tensor(self,At,lda,Ac,bmm,'A');
@@ -590,19 +590,19 @@ namespace op_plugin {
         sync_if_needed(self.device());
         return out;
     }
-     // {"schema": "aten::mm.out(Tensor self, Tensor mat2, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & mm_out(const Tensor & self, const Tensor & mat2, Tensor & out)
+     // {"schema": "aten::mm.out(at::Tensor self, at::Tensor mat2, *, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & mm_out(const at::Tensor & self, const at::Tensor & mat2, at::Tensor & out)
     {
         return mm_bmm_out(self,mat2,out,0);
     }
-    // {"schema": "aten::bmm.out(Tensor self, Tensor mat2, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & bmm_out(const Tensor & self, const Tensor & mat2, Tensor & out)
+    // {"schema": "aten::bmm.out(at::Tensor self, at::Tensor mat2, *, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & bmm_out(const at::Tensor & self, const at::Tensor & mat2, at::Tensor & out)
     {
         return mm_bmm_out(self,mat2,out,1);
     }
 
-    // {"schema": "aten::addmm.out(Tensor self, Tensor mat1, Tensor mat2, *, Scalar beta=1, Scalar alpha=1, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & addmm_out(const Tensor & self, const Tensor & mat1, const Tensor & mat2, const Scalar &sbeta, const Scalar & salpha, Tensor & out)
+    // {"schema": "aten::addmm.out(at::Tensor self, at::Tensor mat1, at::Tensor mat2, *, Scalar beta=1, Scalar alpha=1, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & addmm_out(const at::Tensor & self, const at::Tensor & mat1, const at::Tensor & mat2, const Scalar &sbeta, const Scalar & salpha, at::Tensor & out)
     {
         GUARD;
         double alpha = salpha.toDouble();
@@ -610,7 +610,7 @@ namespace op_plugin {
         if(alpha == 1 && beta == 0) {
             return mm_out(mat1,mat2,out);
         }
-        Tensor p = torch::mm(mat1,mat2);
+        at::Tensor p = torch::mm(mat1,mat2);
         if(beta == 0) {
             auto x=todp(p);
             if(out.is_contiguous()) {
@@ -628,7 +628,7 @@ namespace op_plugin {
         }
         else {
             dlprim::Tensor x = todp(p);
-            Tensor self_c = self.contiguous();
+            at::Tensor self_c = self.contiguous();
             dlprim::Tensor off = todp(self_c);
             dlprim::Tensor tgt;
             if(out.is_contiguous()) {
@@ -649,32 +649,32 @@ namespace op_plugin {
     }
 
 
-    // {"schema": "aten::_native_multi_head_attention.out(Tensor query, Tensor key, Tensor value, int embed_dim, int num_head, Tensor qkv_weight, Tensor qkv_bias, Tensor proj_weight, Tensor proj_bias, Tensor? mask=None, bool need_weights=True, bool average_attn_weights=True, int? mask_type=None, *, Tensor(a!) out0, Tensor(b!) out1) -> (Tensor(a!), Tensor(b!))", "dispatch": "True", "default": "True"}
-    ::std::tuple<Tensor &,Tensor &> _native_multi_head_attention_out(const Tensor & query, const Tensor & key, const Tensor & value, int64_t embed_dim, int64_t num_head, const Tensor & qkv_weight, const Tensor & qkv_bias, const Tensor & proj_weight, const Tensor & proj_bias, const ::std::optional<Tensor> & mask, bool need_weights, bool average_attn_weights, ::std::optional<int64_t> mask_type, Tensor & out0, Tensor & out1)
+    // {"schema": "aten::_native_multi_head_attention.out(at::Tensor query, at::Tensor key, at::Tensor value, int embed_dim, int num_head, at::Tensor qkv_weight, at::Tensor qkv_bias, at::Tensor proj_weight, at::Tensor proj_bias, at::Tensor? mask=None, bool need_weights=True, bool average_attn_weights=True, int? mask_type=None, *, at::Tensor(a!) out0, at::Tensor(b!) out1) -> (at::Tensor(a!), at::Tensor(b!))", "dispatch": "True", "default": "True"}
+    ::std::tuple<at::Tensor &,at::Tensor &> _native_multi_head_attention_out(const at::Tensor & query, const at::Tensor & key, const at::Tensor & value, int64_t embed_dim, int64_t num_head, const at::Tensor & qkv_weight, const at::Tensor & qkv_bias, const at::Tensor & proj_weight, const at::Tensor & proj_bias, const ::std::optional<at::Tensor> & mask, bool need_weights, bool average_attn_weights, ::std::optional<int64_t> mask_type, at::Tensor & out0, at::Tensor & out1)
     {
         GUARD;
         auto r = at::cpu::_native_multi_head_attention(query,key,value,embed_dim,num_head,qkv_weight,qkv_bias,proj_weight,proj_bias,mask,need_weights,average_attn_weights,mask_type);
         out0.copy_(std::get<0>(r));
         out1.copy_(std::get<1>(r));
-        return ::std::tuple<Tensor &,Tensor &>(out0,out1);
+        return ::std::tuple<at::Tensor &,at::Tensor &>(out0,out1);
     }
     
-    // {"schema": "aten::_native_multi_head_attention(Tensor query, Tensor key, Tensor value, int embed_dim, int num_head, Tensor qkv_weight, Tensor qkv_bias, Tensor proj_weight, Tensor proj_bias, Tensor? mask=None, bool need_weights=True, bool average_attn_weights=True, int? mask_type=None) -> (Tensor, Tensor)", "dispatch": "True", "default": "False"} 
-    ::std::tuple<Tensor,Tensor> _native_multi_head_attention(const Tensor & query, const Tensor & key, const Tensor & value, int64_t embed_dim, int64_t num_head, const Tensor & qkv_weight, const Tensor & qkv_bias, const Tensor & proj_weight, const Tensor & proj_bias, const ::std::optional<Tensor> & mask, bool need_weights, bool average_attn_weights, ::std::optional<int64_t> mask_type)
+    // {"schema": "aten::_native_multi_head_attention(at::Tensor query, at::Tensor key, at::Tensor value, int embed_dim, int num_head, at::Tensor qkv_weight, at::Tensor qkv_bias, at::Tensor proj_weight, at::Tensor proj_bias, at::Tensor? mask=None, bool need_weights=True, bool average_attn_weights=True, int? mask_type=None) -> (at::Tensor, at::Tensor)", "dispatch": "True", "default": "False"} 
+    ::std::tuple<at::Tensor,at::Tensor> _native_multi_head_attention(const at::Tensor & query, const at::Tensor & key, const at::Tensor & value, int64_t embed_dim, int64_t num_head, const at::Tensor & qkv_weight, const at::Tensor & qkv_bias, const at::Tensor & proj_weight, const at::Tensor & proj_bias, const ::std::optional<at::Tensor> & mask, bool need_weights, bool average_attn_weights, ::std::optional<int64_t> mask_type)
     {
         GUARD;
         return at::cpu::_native_multi_head_attention(query,key,value,embed_dim,num_head,qkv_weight,qkv_bias,proj_weight,proj_bias,mask,need_weights,average_attn_weights,mask_type);
     }
 
   
-    // {"schema": "aten::_transform_bias_rescale_qkv(Tensor qkv, Tensor qkv_bias, int num_heads) -> (Tensor, Tensor, Tensor)", "dispatch": "True", "default": "False"} 
+    // {"schema": "aten::_transform_bias_rescale_qkv(at::Tensor qkv, at::Tensor qkv_bias, int num_heads) -> (at::Tensor, at::Tensor, at::Tensor)", "dispatch": "True", "default": "False"} 
     // compute q = (q + q_bias) / sqrt(dim_per_head), k = k + k_bias, v = v + v_bias 
-    std::tuple<Tensor, Tensor, Tensor> _transform_bias_rescale_qkv(const Tensor& qkv,const Tensor& qkv_bias,const int64_t num_head) 
+    std::tuple<at::Tensor, at::Tensor, at::Tensor> _transform_bias_rescale_qkv(const at::Tensor& qkv,const at::Tensor& qkv_bias,const int64_t num_head) 
     {
         GUARD;
         auto qkv_ = qkv.is_nested()
-            ? c10::MaybeOwned<Tensor>::owned(qkv.to_padded_tensor(0))
-            : c10::MaybeOwned<Tensor>::borrowed(qkv);
+            ? c10::MaybeOwned<at::Tensor>::owned(qkv.to_padded_tensor(0))
+            : c10::MaybeOwned<at::Tensor>::borrowed(qkv);
         auto B = qkv_->size(0);
         auto T = qkv_->size(1);
         auto _3D = qkv_->size(2);
@@ -718,7 +718,7 @@ namespace op_plugin {
                 )xxx",
                 getExecutionContext(qkv),
                 false); // don't shrink broadcast to make sure we have correct dims
-        Tensor q_k_v_cont_as_q_k_v = q_k_v_same_order;
+        at::Tensor q_k_v_cont_as_q_k_v = q_k_v_same_order;
         q_k_v_cont_as_q_k_v = torch::transpose(q_k_v_cont_as_q_k_v,1,2);
         q_k_v_cont_as_q_k_v = torch::transpose(q_k_v_cont_as_q_k_v,2,3);
         q_k_v_cont_as_q_k_v = torch::transpose(q_k_v_cont_as_q_k_v,0,1);
@@ -729,12 +729,12 @@ namespace op_plugin {
         return std::make_tuple(q_k_v_s[0], q_k_v_s[1], q_k_v_s[2]);
     }
 
-    // {"schema": "aten::upsample_nearest2d.out(Tensor self, SymInt[2] output_size, float? scales_h=None, float? scales_w=None, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & interpolate_2d_out_internal(const Tensor & self, at::IntArrayRef /*output_size*/, ::std::optional<double> scales_h, ::std::optional<double> scales_w, Tensor & out,dlprim::InterpolateType method,bool align_c=false)
+    // {"schema": "aten::upsample_nearest2d.out(at::Tensor self, SymInt[2] output_size, float? scales_h=None, float? scales_w=None, *, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & interpolate_2d_out_internal(const at::Tensor & self, at::IntArrayRef /*output_size*/, ::std::optional<double> scales_h, ::std::optional<double> scales_w, at::Tensor & out,dlprim::InterpolateType method,bool align_c=false)
     {
         GUARD;
-        Tensor self_c = self.contiguous();
-        Tensor out_c = out.contiguous();
+        at::Tensor self_c = self.contiguous();
+        at::Tensor out_c = out.contiguous();
         double scale_h = scales_h ? *scales_h : -1;
         double scale_w = scales_w ? *scales_w : -1;
         dlprim::Tensor x = todp(self_c);
@@ -746,12 +746,12 @@ namespace op_plugin {
         return out;
     }
 
-    // {"schema": "aten::upsample_nearest2d_backward.grad_input(Tensor grad_output, SymInt[2] output_size, SymInt[4] input_size, float? scales_h=None, float? scales_w=None, *, Tensor(a!) grad_input) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & interpolate_2d_backward_out_internal(const Tensor & grad_output, at::IntArrayRef /*output_size*/, at::IntArrayRef /*input_size*/, ::std::optional<double> scales_h, ::std::optional<double> scales_w, Tensor & grad_input,dlprim::InterpolateType method,bool align_c=false)
+    // {"schema": "aten::upsample_nearest2d_backward.grad_input(at::Tensor grad_output, SymInt[2] output_size, SymInt[4] input_size, float? scales_h=None, float? scales_w=None, *, at::Tensor(a!) grad_input) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & interpolate_2d_backward_out_internal(const at::Tensor & grad_output, at::IntArrayRef /*output_size*/, at::IntArrayRef /*input_size*/, ::std::optional<double> scales_h, ::std::optional<double> scales_w, at::Tensor & grad_input,dlprim::InterpolateType method,bool align_c=false)
     {
         GUARD;
-        Tensor grad_output_c = grad_output.contiguous();
-        Tensor grad_input_c  = grad_input.contiguous();
+        at::Tensor grad_output_c = grad_output.contiguous();
+        at::Tensor grad_input_c  = grad_input.contiguous();
         double scale_h = scales_h ? *scales_h : -1;
         double scale_w = scales_w ? *scales_w : -1;
         dlprim::Tensor dx = todp(grad_input_c);
@@ -763,42 +763,42 @@ namespace op_plugin {
         return grad_input;
     }
 
-    // {"schema": "aten::upsample_nearest2d.out(Tensor self, SymInt[2] output_size, float? scales_h=None, float? scales_w=None, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & upsample_nearest2d_out(const Tensor & self, at::IntArrayRef output_size, ::std::optional<double> scales_h, ::std::optional<double> scales_w, Tensor & out)
+    // {"schema": "aten::upsample_nearest2d.out(at::Tensor self, SymInt[2] output_size, float? scales_h=None, float? scales_w=None, *, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & upsample_nearest2d_out(const at::Tensor & self, at::IntArrayRef output_size, ::std::optional<double> scales_h, ::std::optional<double> scales_w, at::Tensor & out)
     {
         GUARD;
         return interpolate_2d_out_internal(self,output_size,scales_h,scales_w,out,dlprim::InterpolateType::nearest);
     }
-    // {"schema": "aten::upsample_nearest2d_backward.grad_input(Tensor grad_output, SymInt[2] output_size, SymInt[4] input_size, float? scales_h=None, float? scales_w=None, *, Tensor(a!) grad_input) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & upsample_nearest2d_backward_out(const Tensor & grad_output, at::IntArrayRef output_size, at::IntArrayRef input_size, ::std::optional<double> scales_h, ::std::optional<double> scales_w, Tensor & grad_input)
+    // {"schema": "aten::upsample_nearest2d_backward.grad_input(at::Tensor grad_output, SymInt[2] output_size, SymInt[4] input_size, float? scales_h=None, float? scales_w=None, *, at::Tensor(a!) grad_input) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & upsample_nearest2d_backward_out(const at::Tensor & grad_output, at::IntArrayRef output_size, at::IntArrayRef input_size, ::std::optional<double> scales_h, ::std::optional<double> scales_w, at::Tensor & grad_input)
     {
         GUARD;
         return interpolate_2d_backward_out_internal(grad_output,output_size,input_size,scales_h,scales_w,grad_input,dlprim::InterpolateType::nearest);
     }
     
-    // {"schema": "aten::_upsample_nearest_exact2d.out(Tensor self, SymInt[2] output_size, float? scales_h=None, float? scales_w=None, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}  
-    Tensor & _upsample_nearest_exact2d_out(const Tensor & self, at::IntArrayRef output_size, ::std::optional<double> scales_h, ::std::optional<double> scales_w, Tensor & out)
+    // {"schema": "aten::_upsample_nearest_exact2d.out(at::Tensor self, SymInt[2] output_size, float? scales_h=None, float? scales_w=None, *, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}  
+    at::Tensor & _upsample_nearest_exact2d_out(const at::Tensor & self, at::IntArrayRef output_size, ::std::optional<double> scales_h, ::std::optional<double> scales_w, at::Tensor & out)
     {
         GUARD;
         return interpolate_2d_out_internal(self,output_size,scales_h,scales_w,out,dlprim::InterpolateType::nearest_exact);
     }
     
-    // {"schema": "aten::_upsample_nearest_exact2d_backward.grad_input(Tensor grad_output, SymInt[2] output_size, SymInt[4] input_size, float? scales_h=None, float? scales_w=None, *, Tensor(a!) grad_input) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & _upsample_nearest_exact2d_backward_out(const Tensor & grad_output, at::IntArrayRef output_size, at::IntArrayRef input_size, ::std::optional<double> scales_h, ::std::optional<double> scales_w, Tensor & grad_input)
+    // {"schema": "aten::_upsample_nearest_exact2d_backward.grad_input(at::Tensor grad_output, SymInt[2] output_size, SymInt[4] input_size, float? scales_h=None, float? scales_w=None, *, at::Tensor(a!) grad_input) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & _upsample_nearest_exact2d_backward_out(const at::Tensor & grad_output, at::IntArrayRef output_size, at::IntArrayRef input_size, ::std::optional<double> scales_h, ::std::optional<double> scales_w, at::Tensor & grad_input)
     {
         GUARD;
         return interpolate_2d_backward_out_internal(grad_output,output_size,input_size,scales_h,scales_w,grad_input,dlprim::InterpolateType::nearest_exact);
     }
     
-    // {"schema": "aten::upsample_bilinear2d.out(Tensor self, SymInt[2] output_size, bool align_corners, float? scales_h=None, float? scales_w=None, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}    
-    Tensor & upsample_bilinear2d_out(const Tensor & self, at::IntArrayRef output_size, bool align_corners, ::std::optional<double> scales_h, ::std::optional<double> scales_w, Tensor & out)
+    // {"schema": "aten::upsample_bilinear2d.out(at::Tensor self, SymInt[2] output_size, bool align_corners, float? scales_h=None, float? scales_w=None, *, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}    
+    at::Tensor & upsample_bilinear2d_out(const at::Tensor & self, at::IntArrayRef output_size, bool align_corners, ::std::optional<double> scales_h, ::std::optional<double> scales_w, at::Tensor & out)
     {
         GUARD;
         return interpolate_2d_out_internal(self,output_size,scales_h,scales_w,out,dlprim::InterpolateType::bilinear,align_corners);
     }
     
-    // {"schema": "aten::upsample_bilinear2d_backward.grad_input(Tensor grad_output, SymInt[2] output_size, SymInt[4] input_size, bool align_corners, float? scales_h=None, float? scales_w=None, *, Tensor(a!) grad_input) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & upsample_bilinear2d_backward_out(const Tensor & grad_output, at::IntArrayRef output_size, at::IntArrayRef input_size, bool align_corners, ::std::optional<double> scales_h, ::std::optional<double> scales_w, Tensor & grad_input)
+    // {"schema": "aten::upsample_bilinear2d_backward.grad_input(at::Tensor grad_output, SymInt[2] output_size, SymInt[4] input_size, bool align_corners, float? scales_h=None, float? scales_w=None, *, at::Tensor(a!) grad_input) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & upsample_bilinear2d_backward_out(const at::Tensor & grad_output, at::IntArrayRef output_size, at::IntArrayRef input_size, bool align_corners, ::std::optional<double> scales_h, ::std::optional<double> scales_w, at::Tensor & grad_input)
     {
         GUARD;
         return interpolate_2d_backward_out_internal(grad_output,output_size,input_size,scales_h,scales_w,grad_input,dlprim::InterpolateType::bilinear,align_corners);

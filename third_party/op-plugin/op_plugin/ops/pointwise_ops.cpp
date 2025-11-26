@@ -3,14 +3,14 @@
 namespace at_torch {
 namespace op_plugin {
 
-    bool is_integer(Tensor const &t,bool include_bool)
+    bool is_integer(at::Tensor const &t,bool include_bool)
     {
         return c10::isIntegralType(t.dtype().toScalarType(),include_bool);
     }
 
-    bool isCPUScalar(Tensor const &other, double &value)
+    bool isCPUScalar(at::Tensor const &other, double &value)
     {
-        if(other.device() == Device(c10::kCPU) && other.numel()==1) {
+        if(other.device() == c10::Device(c10::kCPU) && other.numel()==1) {
             switch(other.dtype().toScalarType()){
             case c10::kFloat:
                 value = *static_cast<float const *>(other.data_ptr());
@@ -29,13 +29,13 @@ namespace op_plugin {
         return false;
     }
 
-    // {"schema": "aten::relu(Tensor self) -> Tensor", "dispatch": "True", "default": "True"}
-    Tensor relu(const Tensor & self)
+    // {"schema": "aten::relu(at::Tensor self) -> at::Tensor", "dispatch": "True", "default": "True"}
+    at::Tensor relu(const at::Tensor & self)
     {
         GUARD;
-        Tensor self_c = self.contiguous();
+        at::Tensor self_c = self.contiguous();
         dlprim::Tensor x = todp(self_c);
-        Tensor out = new_tensor_as(x.shape(), self);
+        at::Tensor out = new_tensor_as(x.shape(), self);
         dlprim::Tensor y = todp(out);
         dlprim::core::activation_forward(x,y,dlprim::StandardActivations::relu, getExecutionContext(self));
         sync_if_needed(self.device());
@@ -43,10 +43,10 @@ namespace op_plugin {
     }
 
 
-    Tensor & relu_(Tensor & self)
+    at::Tensor & relu_(at::Tensor & self)
     {
         GUARD;
-        Tensor self_c = self.contiguous();
+        at::Tensor self_c = self.contiguous();
         dlprim::Tensor X = todp(self_c);
         dlprim::ExecutionContext q = getExecutionContext(self);
         dlprim::core::activation_forward(X,X,dlprim::StandardActivations::relu,q);
@@ -61,14 +61,14 @@ namespace op_plugin {
     template<dlprim::StandardActivations Act>
     class act_cls : public torch::autograd::Function<act_cls<Act> > {
     public:
-        static torch::Tensor std_activation_forward(AutogradContext *ctx, torch::Tensor x) 
+        static at::Tensor std_activation_forward(AutogradContext *ctx, at::Tensor x) 
         {
             GUARD;
             at::AutoDispatchBelowADInplaceOrView g;
            
-            Tensor x_c = x.contiguous(); 
+            at::Tensor x_c = x.contiguous(); 
             dlprim::Tensor X = todp(x_c);
-            torch::Tensor result = new_tensor_as(X.shape(),x);
+            at::Tensor result = new_tensor_as(X.shape(),x);
             ctx->save_for_backward({result});
             dlprim::Tensor Y = todp(result);
             dlprim::ExecutionContext q = getExecutionContext(x);
@@ -76,17 +76,17 @@ namespace op_plugin {
             sync_if_needed(x.device());
             return result;
         }
-        static torch::Tensor forward(AutogradContext *ctx, torch::Tensor x) 
+        static at::Tensor forward(AutogradContext *ctx, at::Tensor x) 
         {
             return std_activation_forward(ctx,x);
         }
         static tensor_list std_activation_backward(AutogradContext *ctx, tensor_list grad_outputs) {
             GUARD;
             auto grad_output = grad_outputs[0].contiguous();
-            torch::Tensor result = ctx->get_saved_variables()[0];
+            at::Tensor result = ctx->get_saved_variables()[0];
             dlprim::Tensor dy=todp(grad_output);
             dlprim::Tensor y=todp(result);
-            torch::Tensor grad_input = new_tensor_as(dy.shape(),grad_output);
+            at::Tensor grad_input = new_tensor_as(dy.shape(),grad_output);
             dlprim::Tensor dx = todp(grad_input);
             dlprim::core::activation_backward(dx,dy,y,Act,0.0,getExecutionContext(grad_output));
             sync_if_needed(grad_output.device());
@@ -98,15 +98,15 @@ namespace op_plugin {
     };
 
     template<dlprim::StandardActivations Act>
-    Tensor act_autograd(Tensor const &x) {
+    at::Tensor act_autograd(at::Tensor const &x) {
         GUARD;
         return act_cls<Act>::apply(x);
     }
 
-    Tensor & mul_(Tensor & self, const Scalar & other)
+    at::Tensor & mul_(at::Tensor & self, const Scalar & other)
     {
         GUARD;
-        Tensor self_c = self.contiguous();
+        at::Tensor self_c = self.contiguous();
         dlprim::Tensor x0=todp(self_c);
         float scale = other.to<double>();
         dlprim::core::pointwise_operation({x0},{x0},{scale},
@@ -120,16 +120,16 @@ namespace op_plugin {
         return self;
     }
     
-    // {"schema": "aten::add.out(Tensor self, Tensor other, *, Scalar alpha=1, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & add_out(const Tensor & self, const Tensor & other, const Scalar & alpha, Tensor & out)
+    // {"schema": "aten::add.out(at::Tensor self, at::Tensor other, *, Scalar alpha=1, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & add_out(const at::Tensor & self, const at::Tensor & other, const Scalar & alpha, at::Tensor & out)
     {
         GUARD;
-        Tensor out_c = out.contiguous();
+        at::Tensor out_c = out.contiguous();
         dlprim::Tensor y0=todp(out_c);
         double value=0;
         auto dev_to_sync = self.device();
         if(isCPUScalar(other,value)) {
-            Tensor self_c = self.contiguous();
+            at::Tensor self_c = self.contiguous();
             dlprim::Tensor x0=todp(self_c);
             float w0 = alpha.toDouble() * value;
             dlprim::core::pointwise_operation({x0},{y0},{w0},
@@ -138,7 +138,7 @@ namespace op_plugin {
         }
         else if(isCPUScalar(self,value)) {
             dev_to_sync = other.device();
-            Tensor other_c = other.contiguous();
+            at::Tensor other_c = other.contiguous();
             dlprim::Tensor x0=todp(other_c);
             float w0 = value;
             float w1 = alpha.toDouble();
@@ -147,9 +147,9 @@ namespace op_plugin {
                                       getExecutionContext(other));
         }
         else {
-            Tensor self_c = self.contiguous();
+            at::Tensor self_c = self.contiguous();
             dlprim::Tensor x0=todp(self_c);
-            Tensor other_c = other.contiguous();
+            at::Tensor other_c = other.contiguous();
             dlprim::Tensor x1=todp(other_c);
             float w0 = alpha.toDouble();
             dlprim::core::pointwise_operation_broadcast({x0,x1},{y0},{w0},
@@ -162,10 +162,10 @@ namespace op_plugin {
         return out;
     }
 
-    Tensor &unitary_op(const Tensor &self,Tensor &out,std::string const &op)
+    at::Tensor &unitary_op(const at::Tensor &self,at::Tensor &out,std::string const &op)
     {
         GUARD;
-        Tensor self_c = self.contiguous(), out_c = out.contiguous();
+        at::Tensor self_c = self.contiguous(), out_c = out.contiguous();
         
         dlprim::Tensor x=todp(self_c);
         dlprim::Tensor y=todp(out_c);
@@ -179,33 +179,33 @@ namespace op_plugin {
     }
     
 
-    // {"schema": "aten::exp.out(Tensor self, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & exp_out(const Tensor & self, Tensor & out)
+    // {"schema": "aten::exp.out(at::Tensor self, *, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & exp_out(const at::Tensor & self, at::Tensor & out)
     {
         GUARD;
         return unitary_op(self,out,"y0 = exp(x0);");
     }
 
-    // {"schema": "aten::log.out(Tensor self, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & log_out(const Tensor & self, Tensor & out)
+    // {"schema": "aten::log.out(at::Tensor self, *, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & log_out(const at::Tensor & self, at::Tensor & out)
     {
         GUARD;
         return unitary_op(self,out,"y0 = log(x0);");
     }
 
-    // {"schema": "aten::sub.out(Tensor self, Tensor other, *, Scalar alpha=1, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & sub_out(const Tensor & self, const Tensor & other, const Scalar & alpha, Tensor & out)
+    // {"schema": "aten::sub.out(at::Tensor self, at::Tensor other, *, Scalar alpha=1, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & sub_out(const at::Tensor & self, const at::Tensor & other, const Scalar & alpha, at::Tensor & out)
     {
         GUARD;
         return add_out(self,other,Scalar(alpha.toDouble()*-1),out);
     }
 
     
-    // {"schema": "aten::addcmul.out(Tensor self, Tensor tensor1, Tensor tensor2, *, Scalar value=1, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & addcmul_out(const Tensor & self, const Tensor & tensor1, const Tensor & tensor2, const Scalar & value, Tensor & out)
+    // {"schema": "aten::addcmul.out(at::Tensor self, at::Tensor tensor1, at::Tensor tensor2, *, Scalar value=1, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & addcmul_out(const at::Tensor & self, const at::Tensor & tensor1, const at::Tensor & tensor2, const Scalar & value, at::Tensor & out)
     {
         GUARD;
-        Tensor self_c = self.contiguous(), out_c = out.contiguous(),
+        at::Tensor self_c = self.contiguous(), out_c = out.contiguous(),
                tensor1_c = tensor1.contiguous(), tensor2_c = tensor2.contiguous();
         
         dlprim::Tensor x0=todp(self_c);
@@ -224,10 +224,10 @@ namespace op_plugin {
         return out;
     }
     
-    Tensor & comp_out(const Tensor & self, const Scalar & other, Tensor & out,std::string const &op)
+    at::Tensor & comp_out(const at::Tensor & self, const Scalar & other, at::Tensor & out,std::string const &op)
     {
         GUARD;
-        Tensor self_c = self.contiguous(), out_c = out.contiguous();
+        at::Tensor self_c = self.contiguous(), out_c = out.contiguous();
         
         dlprim::Tensor x0=todp(self_c);
         dlprim::Tensor y0=todp(out_c);
@@ -242,56 +242,56 @@ namespace op_plugin {
         sync_if_needed(self.device());
         return out;
     }
-    // {"schema": "aten::le.Scalar_out(Tensor self, Scalar other, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & le_out(const Tensor & self, const Scalar & other, Tensor & out)
+    // {"schema": "aten::le.Scalar_out(at::Tensor self, Scalar other, *, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & le_out(const at::Tensor & self, const Scalar & other, at::Tensor & out)
     {
         return comp_out(self,other,out,"<=");
     }
-    // {"schema": "aten::ge.Scalar_out(Tensor self, Scalar other, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & ge_out(const Tensor & self, const Scalar & other, Tensor & out)
+    // {"schema": "aten::ge.Scalar_out(at::Tensor self, Scalar other, *, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & ge_out(const at::Tensor & self, const Scalar & other, at::Tensor & out)
     {
         return comp_out(self,other,out,">=");
     }
 
-    // {"schema": "aten::lt.Scalar_out(Tensor self, Scalar other, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & lt_out(const Tensor & self, const Scalar & other, Tensor & out)
+    // {"schema": "aten::lt.Scalar_out(at::Tensor self, Scalar other, *, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & lt_out(const at::Tensor & self, const Scalar & other, at::Tensor & out)
     {
         return comp_out(self,other,out,"<");
     }
-    // {"schema": "aten::gt.Scalar_out(Tensor self, Scalar other, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & gt_out(const Tensor & self, const Scalar & other, Tensor & out)
+    // {"schema": "aten::gt.Scalar_out(at::Tensor self, Scalar other, *, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & gt_out(const at::Tensor & self, const Scalar & other, at::Tensor & out)
     {
         return comp_out(self,other,out,">");
     }
 
 
 
-    // {"schema": "aten::neg.out(Tensor self, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & neg_out(const Tensor & self, Tensor & out)
+    // {"schema": "aten::neg.out(at::Tensor self, *, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & neg_out(const at::Tensor & self, at::Tensor & out)
     {
         GUARD;
         return unitary_op(self,out,"y0=-x0;");
     }
-    // {"schema": "aten::reciprocal.out(Tensor self, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & reciprocal_out(const Tensor & self, Tensor & out)
+    // {"schema": "aten::reciprocal.out(at::Tensor self, *, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & reciprocal_out(const at::Tensor & self, at::Tensor & out)
     {
         GUARD;
         return unitary_op(self,out,"y0=1.0f/x0;");
     }
 
-    // {"schema": "aten::sqrt.out(Tensor self, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & sqrt_out(const Tensor & self, Tensor & out)
+    // {"schema": "aten::sqrt.out(at::Tensor self, *, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & sqrt_out(const at::Tensor & self, at::Tensor & out)
     {
         GUARD;
         return unitary_op(self,out,"y0 = sqrt(x0);");
     }
 
-    // {"schema": "aten::pow.Tensor_Scalar_out(Tensor self, Scalar exponent, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & pow_out(const Tensor & self, const Scalar & exponent, Tensor & out)
+    // {"schema": "aten::pow.Tensor_Scalar_out(at::Tensor self, Scalar exponent, *, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & pow_out(const at::Tensor & self, const Scalar & exponent, at::Tensor & out)
     {
         GUARD;
-        Tensor self_c = self.contiguous();
-        Tensor out_c = out.contiguous();
+        at::Tensor self_c = self.contiguous();
+        at::Tensor out_c = out.contiguous();
         double val = exponent.toDouble();
         dlprim::Tensor x = todp(self_c);
         dlprim::Tensor y = todp(out_c);
@@ -305,11 +305,11 @@ namespace op_plugin {
     }
 
 
-    // {"schema": "aten::div.out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & div_out(const Tensor & self, const Tensor & other, Tensor & out)
+    // {"schema": "aten::div.out(at::Tensor self, at::Tensor other, *, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & div_out(const at::Tensor & self, const at::Tensor & other, at::Tensor & out)
     {
         GUARD;
-        Tensor self_c = self.contiguous(), out_c = out.contiguous();
+        at::Tensor self_c = self.contiguous(), out_c = out.contiguous();
         
         dlprim::Tensor x0=todp(self_c);
         dlprim::Tensor y0=todp(out_c);
@@ -320,7 +320,7 @@ namespace op_plugin {
                                         getExecutionContext(self));
         }
         else {
-            Tensor other_c = other.contiguous();
+            at::Tensor other_c = other.contiguous();
             dlprim::Tensor x1=todp(other_c);
             dlprim::core::pointwise_operation_broadcast({x0,x1},{y0},{},
                                         "y0 = x0/x1;",
@@ -334,12 +334,12 @@ namespace op_plugin {
         return out;
     }
 
-    // {"schema": "aten::lerp.Scalar_out(Tensor self, Tensor end, Scalar weight, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & lerp_out(const Tensor & self, const Tensor & end, const Scalar & weight, Tensor & out)
+    // {"schema": "aten::lerp.Scalar_out(at::Tensor self, at::Tensor end, Scalar weight, *, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & lerp_out(const at::Tensor & self, const at::Tensor & end, const Scalar & weight, at::Tensor & out)
     {
         GUARD;
-        Tensor self_c = self.contiguous();
-        Tensor end_c = end.contiguous();
+        at::Tensor self_c = self.contiguous();
+        at::Tensor end_c = end.contiguous();
         dlprim::Tensor x0=todp(self_c);
         dlprim::Tensor x1=todp(end_c);
         dlprim::Tensor y0 = todp(out);
@@ -353,10 +353,10 @@ namespace op_plugin {
 
     }
 
-    Tensor & binary_op_out(const Tensor & self, const Tensor & other, Tensor & out,std::string const &op,std::string op_builder="")
+    at::Tensor & binary_op_out(const at::Tensor & self, const at::Tensor & other, at::Tensor & out,std::string const &op,std::string op_builder="")
     {
         GUARD;
-        Tensor self_c  = self.contiguous(), out_c = out.contiguous(),
+        at::Tensor self_c  = self.contiguous(), out_c = out.contiguous(),
                other_c = other.contiguous();
         
         if(op_builder.empty()) {
@@ -395,17 +395,17 @@ namespace op_plugin {
     }
 
 
-    Tensor & mul_out(const Tensor & self, const Tensor & other, Tensor & out)
+    at::Tensor & mul_out(const at::Tensor & self, const at::Tensor & other, at::Tensor & out)
     {
         GUARD;
         return binary_op_out(self,other,out,"*");
     }
 
-    // {"schema": "aten::addcdiv.out(Tensor self, Tensor tensor1, Tensor tensor2, *, Scalar value=1, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & addcdiv_out(const Tensor & self, const Tensor & tensor1, const Tensor & tensor2, const Scalar & value, Tensor & out)
+    // {"schema": "aten::addcdiv.out(at::Tensor self, at::Tensor tensor1, at::Tensor tensor2, *, Scalar value=1, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & addcdiv_out(const at::Tensor & self, const at::Tensor & tensor1, const at::Tensor & tensor2, const Scalar & value, at::Tensor & out)
     {
         GUARD;
-        Tensor self_c = self.contiguous(), out_c = out.contiguous(),
+        at::Tensor self_c = self.contiguous(), out_c = out.contiguous(),
                tensor1_c = tensor1.contiguous(), tensor2_c = tensor2.contiguous();
         
         dlprim::Tensor x0 = todp(self_c);
@@ -424,11 +424,11 @@ namespace op_plugin {
         return out;
     }
 
-    // {"schema": "aten::threshold_backward.grad_input(Tensor grad_output, Tensor self, Scalar threshold, *, Tensor(a!) grad_input) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & threshold_backward_out(const Tensor & grad_output, const Tensor & self, const Scalar & threshold, Tensor & grad_input)
+    // {"schema": "aten::threshold_backward.grad_input(at::Tensor grad_output, at::Tensor self, Scalar threshold, *, at::Tensor(a!) grad_input) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & threshold_backward_out(const at::Tensor & grad_output, const at::Tensor & self, const Scalar & threshold, at::Tensor & grad_input)
     {
         GUARD; 
-        Tensor self_c = self.contiguous(),
+        at::Tensor self_c = self.contiguous(),
                grad_input_c = grad_input.contiguous(),
                grad_output_c = grad_output.contiguous();
                
@@ -489,10 +489,10 @@ namespace op_plugin {
         sum,mean,prod
     };
 
-    Tensor & red_op_out(const Tensor & self, OptionalIntArrayRef dim, bool keepdim, c10::optional<ScalarType> /*dtype*/, Tensor & out, RedOp rop)
+    at::Tensor & red_op_out(const at::Tensor & self, OptionalIntArrayRef dim, bool keepdim, c10::optional<ScalarType> /*dtype*/, at::Tensor & out, RedOp rop)
     {
         GUARD;
-        Tensor self_c = self.contiguous(), out_c = out.contiguous();
+        at::Tensor self_c = self.contiguous(), out_c = out.contiguous();
         
         dlprim::Tensor X = todp(self_c);
         auto r = squeeze_dim(X.shape(),dim,keepdim);
@@ -524,21 +524,21 @@ namespace op_plugin {
     }
 
 
-    // {"schema": "aten::mean.out(Tensor self, int[1]? dim, bool keepdim=False, *, ScalarType? dtype=None, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & mean_out(const Tensor & self, OptionalIntArrayRef dim, bool keepdim, c10::optional<ScalarType> dtype, Tensor & out)
+    // {"schema": "aten::mean.out(at::Tensor self, int[1]? dim, bool keepdim=False, *, ScalarType? dtype=None, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & mean_out(const at::Tensor & self, OptionalIntArrayRef dim, bool keepdim, c10::optional<ScalarType> dtype, at::Tensor & out)
     {
         GUARD;
         return red_op_out(self,dim,keepdim,dtype,out,RedOp::mean);
     }
     
-    // {"schema": "aten::sum.IntList_out(Tensor self, int[1]? dim, bool keepdim=False, *, ScalarType? dtype=None, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & sum_out(const Tensor & self, OptionalIntArrayRef dim, bool keepdim, c10::optional<ScalarType> dtype, Tensor & out)
+    // {"schema": "aten::sum.IntList_out(at::Tensor self, int[1]? dim, bool keepdim=False, *, ScalarType? dtype=None, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & sum_out(const at::Tensor & self, OptionalIntArrayRef dim, bool keepdim, c10::optional<ScalarType> dtype, at::Tensor & out)
     {
         GUARD;
         return red_op_out(self,dim,keepdim,dtype,out,RedOp::sum);
     }
-    // {"schema": "aten::prod.int_out(Tensor self, int dim, bool keepdim=False, *, ScalarType? dtype=None, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}    
-    Tensor & prod_out(const Tensor & self, int64_t dim, bool keepdim, ::std::optional<ScalarType> dtype, Tensor & out)
+    // {"schema": "aten::prod.int_out(at::Tensor self, int dim, bool keepdim=False, *, ScalarType? dtype=None, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}    
+    at::Tensor & prod_out(const at::Tensor & self, int64_t dim, bool keepdim, ::std::optional<ScalarType> dtype, at::Tensor & out)
     {
         GUARD;
         std::vector<int64_t> dims({dim});
@@ -546,13 +546,13 @@ namespace op_plugin {
     }
 
 
-    // {"schema": "aten::hardtanh_(Tensor(a!) self, Scalar min_val=-1, Scalar max_val=1) -> Tensor(a!)", "dispatch": "True", "default": "False"} 
-    Tensor hardtanh(Tensor const &self, const Scalar & min_val, const Scalar & max_val)
+    // {"schema": "aten::hardtanh_(at::Tensor(a!) self, Scalar min_val=-1, Scalar max_val=1) -> at::Tensor(a!)", "dispatch": "True", "default": "False"} 
+    at::Tensor hardtanh(at::Tensor const &self, const Scalar & min_val, const Scalar & max_val)
     {
         GUARD;
-        Tensor self_c = self.contiguous();
+        at::Tensor self_c = self.contiguous();
         dlprim::Tensor X = todp(self_c);
-        Tensor out = new_tensor_as(X.shape(),self);
+        at::Tensor out = new_tensor_as(X.shape(),self);
         dlprim::Tensor Y(todp(out));
         double w0 = min_val.toDouble();
         double w1 = max_val.toDouble();
@@ -562,11 +562,11 @@ namespace op_plugin {
     }
 
 
-    // {"schema": "aten::hardtanh_(Tensor(a!) self, Scalar min_val=-1, Scalar max_val=1) -> Tensor(a!)", "dispatch": "True", "default": "False"} 
-    Tensor & hardtanh_(Tensor & self, const Scalar & min_val, const Scalar & max_val)
+    // {"schema": "aten::hardtanh_(at::Tensor(a!) self, Scalar min_val=-1, Scalar max_val=1) -> at::Tensor(a!)", "dispatch": "True", "default": "False"} 
+    at::Tensor & hardtanh_(at::Tensor & self, const Scalar & min_val, const Scalar & max_val)
     {
         GUARD;
-        Tensor self_c = self.contiguous();
+        at::Tensor self_c = self.contiguous();
         dlprim::Tensor X=todp(self_c);
         double w0 = min_val.toDouble();
         double w1 = max_val.toDouble();
@@ -577,14 +577,14 @@ namespace op_plugin {
         return self;
     }
 
-    // {"schema": "aten::hardtanh_backward(Tensor grad_output, Tensor self, Scalar min_val, Scalar max_val) -> Tensor", "dispatch": "True", "default": "False"}
-    Tensor hardtanh_backward(const Tensor & grad_output, const Tensor & self, const Scalar & min_val, const Scalar & max_val)
+    // {"schema": "aten::hardtanh_backward(at::Tensor grad_output, at::Tensor self, Scalar min_val, Scalar max_val) -> at::Tensor", "dispatch": "True", "default": "False"}
+    at::Tensor hardtanh_backward(const at::Tensor & grad_output, const at::Tensor & self, const Scalar & min_val, const Scalar & max_val)
     {
         GUARD;
-        Tensor self_c = self.contiguous();
+        at::Tensor self_c = self.contiguous();
         dlprim::Tensor X  = todp(self_c);
         dlprim::Tensor dY = todp(grad_output);
-        Tensor result = new_tensor_as(X.shape(),self);
+        at::Tensor result = new_tensor_as(X.shape(),self);
         dlprim::Tensor dX = todp(result);
         double w0 = min_val.toDouble();
         double w1 = max_val.toDouble();
@@ -594,60 +594,60 @@ namespace op_plugin {
     }
 
 
-    // {"schema": "aten::abs.out(Tensor self, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor abs(const Tensor & self)
+    // {"schema": "aten::abs.out(at::Tensor self, *, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor abs(const at::Tensor & self)
     {
         GUARD;
-        Tensor self_c = self.contiguous();
+        at::Tensor self_c = self.contiguous();
         dlprim::Tensor x=todp(self_c);
-        Tensor out = new_tensor_as(x.shape(),self);
+        at::Tensor out = new_tensor_as(x.shape(),self);
         dlprim::Tensor y=todp(out);
         dlprim::core::pointwise_operation({x},{y},{},"y0 = x0 < 0 ? -x0 : x0;",getExecutionContext(self));
         sync_if_needed(self.device());
         return out;
     }
-     // {"schema": "aten::round.out(Tensor self, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & round_out(const Tensor & self, Tensor & out)
+     // {"schema": "aten::round.out(at::Tensor self, *, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & round_out(const at::Tensor & self, at::Tensor & out)
     {
         GUARD;
         return unitary_op(self,out,"y0=round(x0);");
     }
     
-    // {"schema": "aten::atan.out(Tensor self, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & atan_out(const Tensor & self, Tensor & out)
+    // {"schema": "aten::atan.out(at::Tensor self, *, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & atan_out(const at::Tensor & self, at::Tensor & out)
     {
         GUARD;
         return unitary_op(self,out,"y0=atan(x0);");
     }
 
 
-     // {"schema": "aten::abs.out(Tensor self, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & abs_out(const Tensor & self, Tensor & out)
+     // {"schema": "aten::abs.out(at::Tensor self, *, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & abs_out(const at::Tensor & self, at::Tensor & out)
     {
         GUARD;
         return unitary_op(self,out,"y0 = x0 < 0 ? -x0 : x0;");
     }
 
-    // {"schema": "aten::sgn.out(Tensor self, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & sgn_out(const Tensor & self, Tensor & out)
+    // {"schema": "aten::sgn.out(at::Tensor self, *, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & sgn_out(const at::Tensor & self, at::Tensor & out)
     {
         GUARD;
         return unitary_op(self,out,"y0 = x0 < 0 ? -1 : (x0 > 0 ? 1 : 0) ;");
     }
 
     // template<typename TL>
-    // Tensor &cat_internal(TL const &tensors, int64_t dim, Tensor &out, bool reuse)
+    // at::Tensor &cat_internal(TL const &tensors, int64_t dim, at::Tensor &out, bool reuse)
     // {
     //     GUARD;
 
     //     std::vector<dlprim::Tensor> list;
-    //     std::vector<Tensor> list_c;
+    //     std::vector<at::Tensor> list_c;
     //     for(auto const &t:tensors) {
     //         list_c.push_back(t.contiguous());
     //         list.push_back(todp(list_c.back()));
     //     }
     //     TORCH_CHECK(!list_c.empty());
-    //     Tensor &ref_tensor=list_c.front();
+    //     at::Tensor &ref_tensor=list_c.front();
 
     //     size_t total_shape = 0;
     //     dlprim::Shape ref;
@@ -668,7 +668,7 @@ namespace op_plugin {
     //     ref[dim]=total_shape;
         
     //     dlprim::Tensor Y;
-    //     Tensor out_c;
+    //     at::Tensor out_c;
 
     //     if(reuse) {
     //         out_c = out.contiguous();
@@ -687,7 +687,7 @@ namespace op_plugin {
     //     dlprim::core::SliceCopy cp(ctx,todp(out.dtype()));
 
     //     for(size_t i=0,pos=0;i<list.size();i++) {
-    //         Tensor new_tensor;
+    //         at::Tensor new_tensor;
     //         dlprim::Tensor x;
     //         // handle casting
     //         if(list_c[i].dtype() != out.dtype()) {
@@ -711,21 +711,21 @@ namespace op_plugin {
     //     return out;
     // }
 
-    Tensor& cat_internal(const ITensorListRef& tensors, int64_t dim, Tensor& out, bool reuse)
+    at::Tensor& cat_internal(const ITensorListRef& tensors, int64_t dim, at::Tensor& out, bool reuse)
     {
         GUARD; 
 
         std::vector<dlprim::Tensor> list;
-        std::vector<Tensor> list_c;
+        std::vector<at::Tensor> list_c;
 
         // iterate ITensorListRef normally
-        for (const Tensor& t : tensors) {
+        for (const at::Tensor& t : tensors) {
             list_c.push_back(t.contiguous());
             list.push_back(todp(list_c.back()));
         }
 
         TORCH_CHECK(!list_c.empty());
-        Tensor &ref_tensor = list_c.front();
+        at::Tensor &ref_tensor = list_c.front();
 
         size_t total_shape = 0;
         dlprim::Shape ref;
@@ -749,7 +749,7 @@ namespace op_plugin {
         ref[dim] = total_shape;
 
         dlprim::Tensor Y;
-        Tensor out_c;
+        at::Tensor out_c;
 
         if (reuse) {
             out_c = out.contiguous();
@@ -767,7 +767,7 @@ namespace op_plugin {
 
         size_t pos = 0;
         for (size_t i = 0; i < list.size(); i++) {
-            Tensor new_tensor;
+            at::Tensor new_tensor;
             dlprim::Tensor x;
 
             if (list_c[i].dtype() != out.dtype()) {
@@ -794,16 +794,16 @@ namespace op_plugin {
     }
 
 
-    // {"schema": "aten::cat.out(Tensor[] tensors, int dim=0, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
+    // {"schema": "aten::cat.out(at::Tensor[] tensors, int dim=0, *, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
 
-    Tensor & cat_out(const ITensorListRef & tensors, int64_t dim, at::Tensor & out)
+    at::Tensor & cat_out(const ITensorListRef & tensors, int64_t dim, at::Tensor & out)
     {
         GUARD;
         cat_internal(tensors, dim, out, true);
 		return out;
     }
 
-    at::Tensor& cat_out(TensorList tensors, Dimname dim, Tensor& result)
+    at::Tensor& cat_out(TensorList tensors, Dimname dim, at::Tensor& result)
     {
         TORCH_CHECK(tensors.size() > 0, "cat inputs should not be empty." );
         return at::cat_out(result, tensors, dimname_to_position(tensors[0], dim));
@@ -811,23 +811,23 @@ namespace op_plugin {
     
 
 
-    // {"schema": "aten::_cat(Tensor[] tensors, int dim=0) -> Tensor", "dispatch": "True", "default": "False"}
+    // {"schema": "aten::_cat(at::Tensor[] tensors, int dim=0) -> at::Tensor", "dispatch": "True", "default": "False"}
                  
-    Tensor _cat(TensorList tensors, int64_t dim)
+    at::Tensor _cat(TensorList tensors, int64_t dim)
     {
         GUARD;
-        Tensor out;
+        at::Tensor out;
         cat_internal(tensors,dim,out,false);
         return out;
     }
 
 
-    // {"schema": "aten::hardswish_(Tensor(a!) self) 
-    Tensor & hardswish_(Tensor & self)
+    // {"schema": "aten::hardswish_(at::Tensor(a!) self) 
+    at::Tensor & hardswish_(at::Tensor & self)
     {
         GUARD;
         
-        Tensor self_c = self.contiguous();
+        at::Tensor self_c = self.contiguous();
         dlprim::Tensor x=todp(self_c);
         dlprim::core::pointwise_operation({x},{x},{},"y0 = x0 <= -3.0f ? 0 : (x0>=3.0f ? x0 : x0*(x0+3.0f)/6.0f);",getExecutionContext(self));
         
@@ -837,17 +837,17 @@ namespace op_plugin {
         sync_if_needed(self.device());
         return self;
     }
-    // {"schema": "aten::hardsigmoid.out(Tensor self, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & hardsigmoid_out(const Tensor & self, Tensor & out)
+    // {"schema": "aten::hardsigmoid.out(at::Tensor self, *, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & hardsigmoid_out(const at::Tensor & self, at::Tensor & out)
     {
         GUARD;
         return unitary_op(self,out,"y0 = x0 <= -3.0f ? 0 : (x0>=3.0f ? 1.0f : x0/6.0f + 0.5f);");
     }
-    // {"schema": "aten::hardsigmoid_backward.grad_input(Tensor grad_output, Tensor self, *, Tensor(a!) grad_input) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & hardsigmoid_backward_out(const Tensor & grad_output, const Tensor & self, Tensor & grad_input)
+    // {"schema": "aten::hardsigmoid_backward.grad_input(at::Tensor grad_output, at::Tensor self, *, at::Tensor(a!) grad_input) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & hardsigmoid_backward_out(const at::Tensor & grad_output, const at::Tensor & self, at::Tensor & grad_input)
     {
         GUARD;
-        Tensor self_c = self.contiguous(),
+        at::Tensor self_c = self.contiguous(),
                grad_input_c = grad_input.contiguous(),
                grad_output_c = grad_output.contiguous();
         
@@ -864,17 +864,17 @@ namespace op_plugin {
         return grad_input;
     }
     
-    // {"schema": "aten::hardswish_backward(Tensor grad_output, Tensor self) -> Tensor", "dispatch": "True", "default": "False"}
-    Tensor hardswish_backward(const Tensor & grad_output, const Tensor & self)
+    // {"schema": "aten::hardswish_backward(at::Tensor grad_output, at::Tensor self) -> at::Tensor", "dispatch": "True", "default": "False"}
+    at::Tensor hardswish_backward(const at::Tensor & grad_output, const at::Tensor & self)
     {
         GUARD;
-        Tensor grad_output_c = grad_output.contiguous();
+        at::Tensor grad_output_c = grad_output.contiguous();
         dlprim::Tensor dy=todp(grad_output_c);
         
-        Tensor out = new_tensor_as(dy.shape(),grad_output);
+        at::Tensor out = new_tensor_as(dy.shape(),grad_output);
         dlprim::Tensor dx=todp(out);
         
-        Tensor self_c = self.contiguous();
+        at::Tensor self_c = self.contiguous();
         dlprim::Tensor x =todp(self_c);
         dlprim::core::pointwise_operation({x,dy},{dx},{},
             R"xxx(
@@ -891,11 +891,11 @@ namespace op_plugin {
         return out;
     }
 
-    // {"schema": "aten::sigmoid.out(Tensor self, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & sigmoid_out(const Tensor & self, Tensor & out)
+    // {"schema": "aten::sigmoid.out(at::Tensor self, *, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & sigmoid_out(const at::Tensor & self, at::Tensor & out)
     {
         GUARD;
-        Tensor self_c = self.contiguous(), out_c = out.contiguous();
+        at::Tensor self_c = self.contiguous(), out_c = out.contiguous();
         
         dlprim::Tensor x=todp(self_c);
         dlprim::Tensor y=todp(out_c);
@@ -907,14 +907,14 @@ namespace op_plugin {
         sync_if_needed(self.device());
         return out;
     }
-    // {"schema": "aten::sigmoid(Tensor self) -> Tensor", "dispatch": "True", "default": "True"}
-    Tensor sigmoid(const Tensor & self)
+    // {"schema": "aten::sigmoid(at::Tensor self) -> at::Tensor", "dispatch": "True", "default": "True"}
+    at::Tensor sigmoid(const at::Tensor & self)
     {
         GUARD;
-        Tensor self_c = self.contiguous();
+        at::Tensor self_c = self.contiguous();
         
         dlprim::Tensor x=todp(self_c);
-        Tensor out = new_tensor_as(x.shape(),self);
+        at::Tensor out = new_tensor_as(x.shape(),self);
         
         dlprim::Tensor y=todp(out);
         
@@ -922,11 +922,11 @@ namespace op_plugin {
         sync_if_needed(self.device());
         return out;
     }
-    // {"schema": "aten::sigmoid_(Tensor(a!) self) -> Tensor(a!)", "dispatch": "True", "default": "True"}
-    Tensor & sigmoid_(Tensor & self)
+    // {"schema": "aten::sigmoid_(at::Tensor(a!) self) -> at::Tensor(a!)", "dispatch": "True", "default": "True"}
+    at::Tensor & sigmoid_(at::Tensor & self)
     {
         GUARD;
-        Tensor self_c = self.contiguous();
+        at::Tensor self_c = self.contiguous();
         
         dlprim::Tensor X=todp(self_c);
         dlprim::core::activation_forward(X,X,dlprim::StandardActivations::sigmoid,getExecutionContext(self));
@@ -938,11 +938,11 @@ namespace op_plugin {
         return self;
     }
     
-    // {"schema": "aten::sigmoid_backward.grad_input(Tensor grad_output, Tensor output, *, Tensor(a!) grad_input) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & sigmoid_backward_out(const Tensor & grad_output, const Tensor & output, Tensor & grad_input)
+    // {"schema": "aten::sigmoid_backward.grad_input(at::Tensor grad_output, at::Tensor output, *, at::Tensor(a!) grad_input) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & sigmoid_backward_out(const at::Tensor & grad_output, const at::Tensor & output, at::Tensor & grad_input)
     {
         GUARD;
-        Tensor output_c = output.contiguous(),
+        at::Tensor output_c = output.contiguous(),
                grad_output_c = grad_output.contiguous(),
                grad_input_c  = grad_input.contiguous();
                
@@ -959,11 +959,11 @@ namespace op_plugin {
         return grad_input;
     }
 
-    // {"schema": "aten::tanh.out(Tensor self, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & tanh_out(const Tensor & self, Tensor & out)
+    // {"schema": "aten::tanh.out(at::Tensor self, *, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & tanh_out(const at::Tensor & self, at::Tensor & out)
     {
         GUARD;
-        Tensor self_c = self.contiguous(), out_c = out.contiguous();
+        at::Tensor self_c = self.contiguous(), out_c = out.contiguous();
         
         dlprim::Tensor x=todp(self_c);
         dlprim::Tensor y=todp(out_c);
@@ -976,11 +976,11 @@ namespace op_plugin {
         return out;
     }
     
-    // {"schema": "aten::tanh_backward.grad_input(Tensor grad_output, Tensor output, *, Tensor(a!) grad_input) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & tanh_backward_out(const Tensor & grad_output, const Tensor & output, Tensor & grad_input)
+    // {"schema": "aten::tanh_backward.grad_input(at::Tensor grad_output, at::Tensor output, *, at::Tensor(a!) grad_input) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & tanh_backward_out(const at::Tensor & grad_output, const at::Tensor & output, at::Tensor & grad_input)
     {
         GUARD;                
-        Tensor grad_input_c  = grad_input.contiguous(),
+        at::Tensor grad_input_c  = grad_input.contiguous(),
                grad_output_c = grad_output.contiguous(),
                output_c      = output.contiguous();
                 
@@ -996,18 +996,18 @@ namespace op_plugin {
         return grad_input;
 }
 
-    // {"schema": "aten::silu.out(Tensor self, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & silu_out(const Tensor & self, Tensor & out)
+    // {"schema": "aten::silu.out(at::Tensor self, *, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & silu_out(const at::Tensor & self, at::Tensor & out)
     {
         GUARD;
         return unitary_op(self,out,"y0 = x0 / (1.0f + exp(-x0));");
     }
 
-    // {"schema": "aten::silu_backward.grad_input(Tensor grad_output, Tensor self, *, Tensor(a!) grad_input) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & silu_backward_out(const Tensor & grad_output, const Tensor & self, Tensor & grad_input)
+    // {"schema": "aten::silu_backward.grad_input(at::Tensor grad_output, at::Tensor self, *, at::Tensor(a!) grad_input) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & silu_backward_out(const at::Tensor & grad_output, const at::Tensor & self, at::Tensor & grad_input)
     {
         GUARD; 
-        Tensor grad_output_c = grad_output.contiguous(),
+        at::Tensor grad_output_c = grad_output.contiguous(),
                grad_input_c  = grad_input.contiguous(),
                self_c = self.contiguous();
                
@@ -1028,23 +1028,23 @@ namespace op_plugin {
         return grad_input;
     }
 
-    // {"schema": "aten::tanh(Tensor self) -> Tensor", "dispatch": "True", "default": "True"}
-    Tensor tanh(const Tensor & self)
+    // {"schema": "aten::tanh(at::Tensor self) -> at::Tensor", "dispatch": "True", "default": "True"}
+    at::Tensor tanh(const at::Tensor & self)
     {
         GUARD;
-        Tensor self_c = self.contiguous();
+        at::Tensor self_c = self.contiguous();
         dlprim::Tensor x=todp(self_c);
-        Tensor out = new_tensor_as(x.shape(),self);
+        at::Tensor out = new_tensor_as(x.shape(),self);
         dlprim::Tensor y=todp(out);
         dlprim::core::activation_forward(x,y,dlprim::StandardActivations::tanh,getExecutionContext(self));
         sync_if_needed(self.device());
         return out;
     }
-    // {"schema": "aten::tanh_(Tensor(a!) self) -> Tensor(a!)", "dispatch": "True", "default": "True"}
-    Tensor & tanh_(Tensor & self)
+    // {"schema": "aten::tanh_(at::Tensor(a!) self) -> at::Tensor(a!)", "dispatch": "True", "default": "True"}
+    at::Tensor & tanh_(at::Tensor & self)
     {
         GUARD;
-        Tensor self_c = self.contiguous();
+        at::Tensor self_c = self.contiguous();
         dlprim::Tensor X=todp(self_c);
         dlprim::core::activation_forward(X,X,dlprim::StandardActivations::tanh,getExecutionContext(self));
         if(!self.is_contiguous())
@@ -1053,12 +1053,12 @@ namespace op_plugin {
         return self;
     }
 
-    // {"schema": "aten::leaky_relu.out(Tensor self, Scalar negative_slope=0.01, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & leaky_relu_out(const Tensor & self, const Scalar & negative_slope, Tensor & out)
+    // {"schema": "aten::leaky_relu.out(at::Tensor self, Scalar negative_slope=0.01, *, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & leaky_relu_out(const at::Tensor & self, const Scalar & negative_slope, at::Tensor & out)
     {
         GUARD;
         double slope = negative_slope.to<double>();
-        Tensor self_c = self.contiguous(), out_c = out.contiguous();
+        at::Tensor self_c = self.contiguous(), out_c = out.contiguous();
         
         dlprim::Tensor x=todp(self_c);
         dlprim::Tensor y=todp(out_c);
@@ -1071,12 +1071,12 @@ namespace op_plugin {
         return out;
     }
 
-    // {"schema": "aten::leaky_relu_backward.grad_input(Tensor grad_output, Tensor self, Scalar negative_slope, bool self_is_result, *, Tensor(a!) grad_input) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & leaky_relu_backward_out(const Tensor & grad_output, const Tensor & self, const Scalar & negative_slope, bool /*self_is_result*/, Tensor & grad_input)
+    // {"schema": "aten::leaky_relu_backward.grad_input(at::Tensor grad_output, at::Tensor self, Scalar negative_slope, bool self_is_result, *, at::Tensor(a!) grad_input) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & leaky_relu_backward_out(const at::Tensor & grad_output, const at::Tensor & self, const Scalar & negative_slope, bool /*self_is_result*/, at::Tensor & grad_input)
     {
         GUARD;
         double slope = negative_slope.to<double>();
-        Tensor self_c = self.contiguous(),
+        at::Tensor self_c = self.contiguous(),
                grad_input_c  = grad_input.contiguous(),
                grad_output_c = grad_output.contiguous();
         
@@ -1092,12 +1092,12 @@ namespace op_plugin {
         return grad_input;
     }
 
-    // {"schema": "aten::amax.out(Tensor self, int[1] dim=[], bool keepdim=False, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & amin_amax_out(const Tensor & self, IntArrayRef dim, bool keepdim, Tensor & out,bool is_max)
+    // {"schema": "aten::amax.out(at::Tensor self, int[1] dim=[], bool keepdim=False, *, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & amin_amax_out(const at::Tensor & self, IntArrayRef dim, bool keepdim, at::Tensor & out,bool is_max)
     {
         GUARD;
-        Tensor self_c = self.contiguous();
-        Tensor out_c = out.contiguous();
+        at::Tensor self_c = self.contiguous();
+        at::Tensor out_c = out.contiguous();
         
         dlprim::Tensor X = todp(self_c);
         dlprim::Tensor Yval = todp(out_c);
@@ -1134,24 +1134,24 @@ namespace op_plugin {
         sync_if_needed(self.device());
         return out;
     }
-    // {"schema": "aten::amax.out(Tensor self, int[1] dim=[], bool keepdim=False, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & amax_out(const Tensor & self, IntArrayRef dim, bool keepdim, Tensor & out)
+    // {"schema": "aten::amax.out(at::Tensor self, int[1] dim=[], bool keepdim=False, *, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & amax_out(const at::Tensor & self, IntArrayRef dim, bool keepdim, at::Tensor & out)
     {
         return amin_amax_out(self,dim,keepdim,out,true);
     }
-    // {"schema": "aten::amin.out(Tensor self, int[1] dim=[], bool keepdim=False, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & amin_out(const Tensor & self, IntArrayRef dim, bool keepdim, Tensor & out)
+    // {"schema": "aten::amin.out(at::Tensor self, int[1] dim=[], bool keepdim=False, *, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & amin_out(const at::Tensor & self, IntArrayRef dim, bool keepdim, at::Tensor & out)
     {
         return amin_amax_out(self,dim,keepdim,out,false);
     }
 
 
 
-    // {"schema": "aten::argmax.out(Tensor self, int? dim=None, bool keepdim=False, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & argmax_out(const Tensor & self, c10::optional<int64_t> dim, bool keepdim, Tensor & out)
+    // {"schema": "aten::argmax.out(at::Tensor self, int? dim=None, bool keepdim=False, *, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & argmax_out(const at::Tensor & self, c10::optional<int64_t> dim, bool keepdim, at::Tensor & out)
     {
         GUARD;
-        Tensor self_c = self.contiguous(), out_c = out.contiguous();
+        at::Tensor self_c = self.contiguous(), out_c = out.contiguous();
         
         dlprim::Tensor X = todp(self_c);
         dlprim::Tensor Yind = todp(out_c);
@@ -1198,12 +1198,12 @@ namespace op_plugin {
         return out;
     }
     
-    static Tensor min_or_max(const Tensor & self, bool is_min)
+    static at::Tensor min_or_max(const at::Tensor & self, bool is_min)
     {
         GUARD;
-        Tensor self_c = self.contiguous();
+        at::Tensor self_c = self.contiguous();
         dlprim::Tensor X = todp(self_c);
-        Tensor result = new_tensor_as(dlprim::Shape(),self);
+        at::Tensor result = new_tensor_as(dlprim::Shape(),self);
         dlprim::Tensor Y = todp(result);
         std::string y0 = dlprim::data_type_to_opencl_numeric_limit(X.dtype(),(is_min ? dlprim::dt_max_val : dlprim::dt_min_val));
         dlprim::ExecutionContext q=getExecutionContext(self);
@@ -1226,27 +1226,27 @@ namespace op_plugin {
         return result;
     }
 
-    // {"schema": "aten::min(Tensor self) -> Tensor", "dispatch": "True", "default": "False"}
-    Tensor min(const Tensor & self)
+    // {"schema": "aten::min(at::Tensor self) -> at::Tensor", "dispatch": "True", "default": "False"}
+    at::Tensor min(const at::Tensor & self)
     {
         return min_or_max(self,true);
     }
 
-    // {"schema": "aten::max(Tensor self) -> Tensor", "dispatch": "True", "default": "False"}
-    Tensor max(const Tensor & self)
+    // {"schema": "aten::max(at::Tensor self) -> at::Tensor", "dispatch": "True", "default": "False"}
+    at::Tensor max(const at::Tensor & self)
     {
         return min_or_max(self,false);
     }
 
-    // {"schema": "aten::dot(Tensor self, Tensor tensor) -> Tensor", "dispatch": "True", "default": "False"}
-    Tensor dot(const Tensor & self, const Tensor & tensor)
+    // {"schema": "aten::dot(at::Tensor self, at::Tensor tensor) -> at::Tensor", "dispatch": "True", "default": "False"}
+    at::Tensor dot(const at::Tensor & self, const at::Tensor & tensor)
     {
         GUARD;
-        Tensor self_c = self.contiguous(), tensor_c = tensor.contiguous();
+        at::Tensor self_c = self.contiguous(), tensor_c = tensor.contiguous();
         
         dlprim::Tensor x0=todp(self_c);
         dlprim::Tensor x1=todp(tensor_c);
-        Tensor result = new_tensor_as(dlprim::Shape(),self_c);
+        at::Tensor result = new_tensor_as(dlprim::Shape(),self_c);
         dlprim::Tensor y=todp(result);
         auto q = getExecutionContext(self);
         dlprim::Context ctx(q);
@@ -1265,11 +1265,11 @@ namespace op_plugin {
     }
 
 
-    // {"schema": "aten::ne.Scalar_out(Tensor self, Scalar other, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"} 
-    Tensor & ne_out(const Tensor & self, const Scalar & other, Tensor & out)
+    // {"schema": "aten::ne.Scalar_out(at::Tensor self, Scalar other, *, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"} 
+    at::Tensor & ne_out(const at::Tensor & self, const Scalar & other, at::Tensor & out)
     {
         GUARD;
-        Tensor self_c = self.contiguous(), out_c = out.contiguous();
+        at::Tensor self_c = self.contiguous(), out_c = out.contiguous();
         
         dlprim::Tensor x(todp(self_c));
         dlprim::Tensor y(todp(out_c));
@@ -1286,36 +1286,36 @@ namespace op_plugin {
     }
 
 
-    Tensor & ne_out(const Tensor & self, const Tensor & other, Tensor & out)             
+    at::Tensor & ne_out(const at::Tensor & self, const at::Tensor & other, at::Tensor & out)             
     {
         return binary_op_out(self,other,out,"!=");
     }
-    Tensor & eq_out(const Tensor & self, const Tensor & other, Tensor & out)
+    at::Tensor & eq_out(const at::Tensor & self, const at::Tensor & other, at::Tensor & out)
     {
         return binary_op_out(self,other,out,"==");
     }
-    Tensor & lt_out(const Tensor & self, const Tensor & other, Tensor & out)
+    at::Tensor & lt_out(const at::Tensor & self, const at::Tensor & other, at::Tensor & out)
     {
         return binary_op_out(self,other,out,"<");
     }
-    Tensor & le_out(const Tensor & self, const Tensor & other, Tensor & out)
+    at::Tensor & le_out(const at::Tensor & self, const at::Tensor & other, at::Tensor & out)
     {
         return binary_op_out(self,other,out,"<=");
     }
-    Tensor & gt_out(const Tensor & self, const Tensor & other, Tensor & out)
+    at::Tensor & gt_out(const at::Tensor & self, const at::Tensor & other, at::Tensor & out)
     {
         return binary_op_out(self,other,out,">");
     }
-    Tensor & ge_out(const Tensor & self, const Tensor & other, Tensor & out)
+    at::Tensor & ge_out(const at::Tensor & self, const at::Tensor & other, at::Tensor & out)
     {
         return binary_op_out(self,other,out,">=");
     }
 
-    // {"schema": "aten::eq.Scalar_out(Tensor self, Scalar other, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & eq_out(const Tensor & self, const Scalar & other, Tensor & out)
+    // {"schema": "aten::eq.Scalar_out(at::Tensor self, Scalar other, *, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & eq_out(const at::Tensor & self, const Scalar & other, at::Tensor & out)
     {
         GUARD;
-        Tensor self_c = self.contiguous(), out_c = out.contiguous();
+        at::Tensor self_c = self.contiguous(), out_c = out.contiguous();
         
         dlprim::Tensor x(todp(self_c));
         dlprim::Tensor y(todp(out_c));
@@ -1331,29 +1331,29 @@ namespace op_plugin {
 
     }
 
-    // {"schema": "aten::bitwise_and.Tensor_out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & bitwise_and_out(const Tensor & self, const Tensor & other, Tensor & out)
+    // {"schema": "aten::bitwise_and.Tensor_out(at::Tensor self, at::Tensor other, *, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & bitwise_and_out(const at::Tensor & self, const at::Tensor & other, at::Tensor & out)
     {
         GUARD;
         TORCH_CHECK(is_integer(self,true) && is_integer(other,true),"& is not valid for floating point");
         return binary_op_out(self,other,out,(self.dtype() == c10::kBool ? "&&" : "&"));
     }
-    // {"schema": "aten::bitwise_or.Tensor_out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & bitwise_or_out(const Tensor & self, const Tensor & other, Tensor & out)
+    // {"schema": "aten::bitwise_or.Tensor_out(at::Tensor self, at::Tensor other, *, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & bitwise_or_out(const at::Tensor & self, const at::Tensor & other, at::Tensor & out)
     {
         GUARD;
         TORCH_CHECK(is_integer(self,true) && is_integer(other,true),"| is not valid for floating point");
         return binary_op_out(self,other,out,(self.dtype() == c10::kBool ? "||" : "|"));
     }
-    // {"schema": "aten::bitwise_xor.Tensor_out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & bitwise_xor_out(const Tensor & self, const Tensor & other, Tensor & out)
+    // {"schema": "aten::bitwise_xor.Tensor_out(at::Tensor self, at::Tensor other, *, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & bitwise_xor_out(const at::Tensor & self, const at::Tensor & other, at::Tensor & out)
     {
         GUARD;
         TORCH_CHECK(is_integer(self,true) && is_integer(other,true),"^ is not valid for floating point");
         return binary_op_out(self,other,out,(self.dtype() == c10::kBool ? "!=" : "^"));
     }
-    // {"schema": "aten::bitwise_not.out(Tensor self, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & bitwise_not_out(const Tensor & self, Tensor & out)
+    // {"schema": "aten::bitwise_not.out(at::Tensor self, *, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & bitwise_not_out(const at::Tensor & self, at::Tensor & out)
     {
         GUARD;
         TORCH_CHECK(is_integer(self,true),"~ is valid for integer types");
@@ -1361,11 +1361,11 @@ namespace op_plugin {
     }
 
 
-    // {"schema": "aten::clamp.out(Tensor self, Scalar? min=None, Scalar? max=None, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & clamp_out(const Tensor & self, const c10::optional<Scalar> & min, const c10::optional<Scalar> & max, Tensor & out)
+    // {"schema": "aten::clamp.out(at::Tensor self, Scalar? min=None, Scalar? max=None, *, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & clamp_out(const at::Tensor & self, const c10::optional<Scalar> & min, const c10::optional<Scalar> & max, at::Tensor & out)
     {
         GUARD;
-        Tensor self_c = self.contiguous(), out_c = out.contiguous();
+        at::Tensor self_c = self.contiguous(), out_c = out.contiguous();
         dlprim::Tensor Y = todp(out_c);
         dlprim::Tensor X = todp(self_c);
         auto q = getExecutionContext(self);
@@ -1385,11 +1385,11 @@ namespace op_plugin {
         return out;
     }
     
-    // {"schema": "aten::clamp.out(Tensor self, Scalar min, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & clamp_min_out(const Tensor & self, const Scalar & min, Tensor & out)
+    // {"schema": "aten::clamp.out(at::Tensor self, Scalar min, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & clamp_min_out(const at::Tensor & self, const Scalar & min, at::Tensor & out)
     {
         GUARD;
-        Tensor self_c = self.contiguous(), out_c = out.contiguous();
+        at::Tensor self_c = self.contiguous(), out_c = out.contiguous();
         dlprim::Tensor Y = todp(out_c);
         dlprim::Tensor X = todp(self_c);
         auto q = getExecutionContext(self);
@@ -1403,18 +1403,18 @@ namespace op_plugin {
         return out;
     }
     
-    // {"schema": "aten::ceil.out(Tensor self, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & ceil_out(const Tensor & self, Tensor & out)
+    // {"schema": "aten::ceil.out(at::Tensor self, *, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & ceil_out(const at::Tensor & self, at::Tensor & out)
     {
         GUARD;
         return unitary_op(self,out,"y0 = ceil(x0);");
     }
 
-    // {"schema": "aten::gelu.out(Tensor self, *, str approximate='none', Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & gelu_out(const Tensor & self, c10::string_view approximate, Tensor & out)
+    // {"schema": "aten::gelu.out(at::Tensor self, *, str approximate='none', at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & gelu_out(const at::Tensor & self, c10::string_view approximate, at::Tensor & out)
     {
         GUARD;
-        Tensor self_c = self.contiguous(), out_c = out.contiguous();
+        at::Tensor self_c = self.contiguous(), out_c = out.contiguous();
         dlprim::Tensor Y = todp(out_c);
         dlprim::Tensor X = todp(self_c);
         auto q = getExecutionContext(self);
@@ -1432,11 +1432,11 @@ namespace op_plugin {
         return out;
     }
 
-    // {"schema": "aten::gelu_backward.grad_input(Tensor grad_output, Tensor self, *, str approximate='none', Tensor(a!) grad_input) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & gelu_backward_out(const Tensor & grad_output, const Tensor & self, c10::string_view approximate, Tensor & grad_input)
+    // {"schema": "aten::gelu_backward.grad_input(at::Tensor grad_output, at::Tensor self, *, str approximate='none', at::Tensor(a!) grad_input) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & gelu_backward_out(const at::Tensor & grad_output, const at::Tensor & self, c10::string_view approximate, at::Tensor & grad_input)
     {
         GUARD;
-        Tensor grad_output_c = grad_output.contiguous(),
+        at::Tensor grad_output_c = grad_output.contiguous(),
                grad_input_c  = grad_input.contiguous(),
                self_c = self.contiguous();
 
@@ -1482,11 +1482,11 @@ namespace op_plugin {
         return grad_input;
     }
 
-    // {"schema": "aten::logit.out(Tensor self, float? eps=None, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"} 
-    Tensor & logit_out(const Tensor & self, ::std::optional<double> eps, Tensor & out)
+    // {"schema": "aten::logit.out(at::Tensor self, float? eps=None, *, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"} 
+    at::Tensor & logit_out(const at::Tensor & self, ::std::optional<double> eps, at::Tensor & out)
     {
         GUARD;
-        Tensor self_c = self.contiguous(), out_c = out.contiguous();
+        at::Tensor self_c = self.contiguous(), out_c = out.contiguous();
         dlprim::Tensor X = todp(self_c);
         dlprim::Tensor Y = todp(out_c);
         auto q = getExecutionContext(self);
@@ -1506,19 +1506,19 @@ namespace op_plugin {
         sync_if_needed(self.device());
         return out;
     }
-    // {"schema": "aten::logit(Tensor self, float? eps=None) -> Tensor", "dispatch": "True", "default": "False"}
-    Tensor logit(const Tensor & self, ::std::optional<double> eps)
+    // {"schema": "aten::logit(at::Tensor self, float? eps=None) -> at::Tensor", "dispatch": "True", "default": "False"}
+    at::Tensor logit(const at::Tensor & self, ::std::optional<double> eps)
     {
-        Tensor self_c = self.contiguous();
+        at::Tensor self_c = self.contiguous();
         dlprim::Tensor X = todp(self_c);
         
-        torch::Tensor result = new_tensor_as(X.shape(),self);
+        at::Tensor result = new_tensor_as(X.shape(),self);
         logit_out(self_c,eps,result);
         return result;
     }
 
-    // {"schema": "aten::arange.start_out(Scalar start, Scalar end, Scalar step=1, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False")
-    Tensor & arange_out(const Scalar & start, const Scalar & end, const Scalar & step, Tensor & out) 
+    // {"schema": "aten::arange.start_out(Scalar start, Scalar end, Scalar step=1, *, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False")
+    at::Tensor & arange_out(const Scalar & start, const Scalar & end, const Scalar & step, at::Tensor & out) 
     {
         GUARD;
         double dstart = start.to<double>();
@@ -1534,11 +1534,11 @@ namespace op_plugin {
                     ". Note that this may occur as a result of rounding error. "
                     "The out tensor will be resized to a tensor of shape (", size, ",).");
             }
-            //Tensor tmp = new_tensor_as(dlprim::Shape(size),out);
+            //at::Tensor tmp = new_tensor_as(dlprim::Shape(size),out);
             //out = std::move(tmp);
             out.resize_({size});
         }
-        Tensor out_c = out.contiguous();
+        at::Tensor out_c = out.contiguous();
         dlprim::Tensor Y = todp(out_c);
         auto q = getExecutionContext(out);
         dlprim::core::pointwise_operation({},{Y},{dstart,dstep},
@@ -1550,24 +1550,24 @@ namespace op_plugin {
         return out;
     }
 
-    // {"schema": "aten::maximum.out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & maximum_out(const Tensor & self, const Tensor & other, Tensor & out)
+    // {"schema": "aten::maximum.out(at::Tensor self, at::Tensor other, *, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & maximum_out(const at::Tensor & self, const at::Tensor & other, at::Tensor & out)
     {
         GUARD;
         return binary_op_out(self,other,out,"","y0 = max(left,right); ");
     }
-    // {"schema": "aten::minimum.out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & minimum_out(const Tensor & self, const Tensor & other, Tensor & out)
+    // {"schema": "aten::minimum.out(at::Tensor self, at::Tensor other, *, at::Tensor(a!) out) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & minimum_out(const at::Tensor & self, const at::Tensor & other, at::Tensor & out)
     {
         GUARD;
         return binary_op_out(self,other,out,"","y0 = min(left,right); ");
     }
 
-   // {"schema": "aten::log_sigmoid_forward.output(Tensor self, *, Tensor(a!) output, Tensor(b!) buffer) -> (Tensor(a!), Tensor(b!))", "dispatch": "True", "default": "False"
-    ::std::tuple<Tensor &,Tensor &> log_sigmoid_forward_out(const Tensor & self, Tensor & output, Tensor & buffer)
+   // {"schema": "aten::log_sigmoid_forward.output(at::Tensor self, *, at::Tensor(a!) output, at::Tensor(b!) buffer) -> (at::Tensor(a!), at::Tensor(b!))", "dispatch": "True", "default": "False"
+    ::std::tuple<at::Tensor &,at::Tensor &> log_sigmoid_forward_out(const at::Tensor & self, at::Tensor & output, at::Tensor & buffer)
     {
         GUARD;
-        Tensor self_c = self.contiguous(), output_c = output.contiguous(), buffer_c = buffer.contiguous();
+        at::Tensor self_c = self.contiguous(), output_c = output.contiguous(), buffer_c = buffer.contiguous();
         dlprim::Tensor x=todp(self_c), out = todp(output_c), buf = todp(buffer_c);
         dlprim::core::pointwise_operation({x},{out,buf},{},
                     R"xxx(
@@ -1583,29 +1583,29 @@ namespace op_plugin {
             buffer.copy_(buffer_c);
 
         sync_if_needed(self.device());
-        return ::std::tuple<Tensor &,Tensor &>(output,buffer);
+        return ::std::tuple<at::Tensor &,at::Tensor &>(output,buffer);
 
     }
 
-    /// {"schema": "aten::log_sigmoid_forward(Tensor self) -> (Tensor output, Tensor buffer)", "dispatch": "True", "default": "False"}
-    ::std::tuple<Tensor,Tensor> log_sigmoid_forward(const Tensor & self)
+    /// {"schema": "aten::log_sigmoid_forward(at::Tensor self) -> (at::Tensor output, at::Tensor buffer)", "dispatch": "True", "default": "False"}
+    ::std::tuple<at::Tensor,at::Tensor> log_sigmoid_forward(const at::Tensor & self)
     {
         GUARD;
-        Tensor out = at::empty_like(self);
-        Tensor buffer = at::empty_like(self);
+        at::Tensor out = at::empty_like(self);
+        at::Tensor buffer = at::empty_like(self);
         
         log_sigmoid_forward_out(self,out,buffer);
-        return ::std::tuple<Tensor,Tensor>(out,buffer);
+        return ::std::tuple<at::Tensor,at::Tensor>(out,buffer);
     }
     
-    // {"schema": "aten::log_sigmoid_backward.grad_input(Tensor grad_output, Tensor self, Tensor buffer, *, Tensor(a!) grad_input) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & log_sigmoid_backward_out(const Tensor & grad_output, const Tensor & self, const Tensor & buffer, Tensor & grad_input)
+    // {"schema": "aten::log_sigmoid_backward.grad_input(at::Tensor grad_output, at::Tensor self, at::Tensor buffer, *, at::Tensor(a!) grad_input) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & log_sigmoid_backward_out(const at::Tensor & grad_output, const at::Tensor & self, const at::Tensor & buffer, at::Tensor & grad_input)
     {
         GUARD;
-        Tensor grad_output_c = grad_output.contiguous();
-        Tensor self_c = self.contiguous();
-        Tensor buffer_c = buffer.contiguous();
-        Tensor grad_input_c = grad_input.contiguous();
+        at::Tensor grad_output_c = grad_output.contiguous();
+        at::Tensor self_c = self.contiguous();
+        at::Tensor buffer_c = buffer.contiguous();
+        at::Tensor grad_input_c = grad_input.contiguous();
 
         dlprim::Tensor dy = todp(grad_output_c);
         dlprim::Tensor x = todp(self_c);
@@ -1627,11 +1627,11 @@ namespace op_plugin {
         sync_if_needed(self.device());
         return grad_input;
     }
-    // {"schema": "aten::log_sigmoid_backward(Tensor grad_output, Tensor self, Tensor buffer) -> Tensor", "dispatch": "True", "default": "False"}
-    Tensor log_sigmoid_backward(const Tensor & grad_output, const Tensor & self, const Tensor & buffer)
+    // {"schema": "aten::log_sigmoid_backward(at::Tensor grad_output, at::Tensor self, at::Tensor buffer) -> at::Tensor", "dispatch": "True", "default": "False"}
+    at::Tensor log_sigmoid_backward(const at::Tensor & grad_output, const at::Tensor & self, const at::Tensor & buffer)
     {
         GUARD;
-        Tensor grad_input = at::empty_like(grad_output);
+        at::Tensor grad_input = at::empty_like(grad_output);
         log_sigmoid_backward_out(grad_output,self,buffer,grad_input);
         return grad_input;
     }

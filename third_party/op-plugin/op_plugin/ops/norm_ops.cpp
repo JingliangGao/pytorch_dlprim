@@ -3,8 +3,8 @@
 namespace at_torch {
 namespace op_plugin {
 
-    // {"schema": "aten::native_batch_norm(Tensor input, Tensor? weight, Tensor? bias, Tensor? running_mean, Tensor? running_var, bool training, float momentum, float eps) -> (Tensor, Tensor, Tensor)", "dispatch": "True", "default": "False"}
-    ::std::tuple<Tensor,Tensor,Tensor> native_batch_norm(const Tensor & input, const c10::optional<Tensor> & weight, const c10::optional<Tensor> & bias, const c10::optional<Tensor> & running_mean, const c10::optional<Tensor> & running_var, bool training, double momentum, double eps)
+    // {"schema": "aten::native_batch_norm(at::Tensor input, at::Tensor? weight, at::Tensor? bias, at::Tensor? running_mean, at::Tensor? running_var, bool training, float momentum, float eps) -> (at::Tensor, at::Tensor, at::Tensor)", "dispatch": "True", "default": "False"}
+    ::std::tuple<at::Tensor,at::Tensor,at::Tensor> native_batch_norm(const at::Tensor & input, const c10::optional<at::Tensor> & weight, const c10::optional<at::Tensor> & bias, const c10::optional<at::Tensor> & running_mean, const c10::optional<at::Tensor> & running_var, bool training, double momentum, double eps)
     {
         GUARD;
         bool weight_present = weight && weight->numel()>0; 
@@ -17,9 +17,9 @@ namespace op_plugin {
         dlprim::ExecutionContext q=getExecutionContext(input);
         dlprim::Context ctx(q);
 
-        Tensor input_c = input.contiguous();
+        at::Tensor input_c = input.contiguous();
         dlprim::Tensor X = todp(input_c);
-        Tensor result = new_tensor_as(X.shape(),input);
+        at::Tensor result = new_tensor_as(X.shape(),input);
         dlprim::Tensor Y = todp(result);
         dlprim::Tensor gamma,beta;
         if(affine) {
@@ -28,7 +28,7 @@ namespace op_plugin {
         }
         dlprim::Tensor mean = todp(*running_mean);
         dlprim::Tensor var  = todp(*running_var);
-        Tensor calc_mean_pt,calc_var_pt;
+        at::Tensor calc_mean_pt,calc_var_pt;
         dlprim::Tensor calc_mean,calc_var;
         
         if(training) {
@@ -68,17 +68,17 @@ namespace op_plugin {
         else {
             bn->enqueue_forward_direct(X,Y,fwd_mean,fwd_var,eps,ws,q);
         }
-        return std::tuple<Tensor,Tensor,Tensor>(result,calc_mean_pt,calc_var_pt);
+        return std::tuple<at::Tensor,at::Tensor,at::Tensor>(result,calc_mean_pt,calc_var_pt);
     }
 
-    // {"schema": "aten::native_batch_norm_backward(Tensor grad_out, Tensor input, Tensor? weight, Tensor? running_mean, Tensor? running_var, Tensor? save_mean, Tensor? save_invstd, bool train, float eps, bool[3] output_mask) -> (Tensor, Tensor, Tensor)", "dispatch": "True", "default": "False"} 
-    ::std::tuple<Tensor,Tensor,Tensor> native_batch_norm_backward(const Tensor & grad_out,
-                                                                  const Tensor & input,
-                                                                  const c10::optional<Tensor> & weight,
-                                                                  const c10::optional<Tensor> & running_mean,
-                                                                  const c10::optional<Tensor> & running_var,
-                                                                  const c10::optional<Tensor> & save_mean,
-                                                                  const c10::optional<Tensor> & save_var,
+    // {"schema": "aten::native_batch_norm_backward(at::Tensor grad_out, at::Tensor input, at::Tensor? weight, at::Tensor? running_mean, at::Tensor? running_var, at::Tensor? save_mean, at::Tensor? save_invstd, bool train, float eps, bool[3] output_mask) -> (at::Tensor, at::Tensor, at::Tensor)", "dispatch": "True", "default": "False"} 
+    ::std::tuple<at::Tensor,at::Tensor,at::Tensor> native_batch_norm_backward(const at::Tensor & grad_out,
+                                                                  const at::Tensor & input,
+                                                                  const c10::optional<at::Tensor> & weight,
+                                                                  const c10::optional<at::Tensor> & running_mean,
+                                                                  const c10::optional<at::Tensor> & running_var,
+                                                                  const c10::optional<at::Tensor> & save_mean,
+                                                                  const c10::optional<at::Tensor> & save_var,
                                                                   bool train,
                                                                   double eps,
                                                                   ::std::array<bool,3> output_mask)
@@ -94,7 +94,7 @@ namespace op_plugin {
         dlprim::Tensor W;
         if(weight_present)
             W = todp(*weight);
-        Tensor x_diff,gamma_diff,beta_diff;
+        at::Tensor x_diff,gamma_diff,beta_diff;
 
         bool bwd_data=output_mask[0];
         bool bwd_gamma=output_mask[1] && affine;
@@ -148,11 +148,11 @@ namespace op_plugin {
 
         }
         sync_if_needed(input.device());
-        return std::tuple<torch::Tensor,torch::Tensor,torch::Tensor>(x_diff,gamma_diff,beta_diff);
+        return std::tuple<at::Tensor,at::Tensor,at::Tensor>(x_diff,gamma_diff,beta_diff);
     }
 
-    // {"schema": "aten::native_layer_norm(Tensor input, SymInt[] normalized_shape, Tensor? weight, Tensor? bias, float eps) -> (Tensor, Tensor, Tensor)", "dispatch": "True", "default": "True"}
-    std::tuple<Tensor,Tensor,Tensor> native_layer_norm(const Tensor & input, at::IntArrayRef normalized_shape, const c10::optional<Tensor> & weight, const c10::optional<Tensor> & bias, double eps)
+    // {"schema": "aten::native_layer_norm(at::Tensor input, SymInt[] normalized_shape, at::Tensor? weight, at::Tensor? bias, float eps) -> (at::Tensor, at::Tensor, at::Tensor)", "dispatch": "True", "default": "True"}
+    std::tuple<at::Tensor,at::Tensor,at::Tensor> native_layer_norm(const at::Tensor & input, at::IntArrayRef normalized_shape, const c10::optional<at::Tensor> & weight, const c10::optional<at::Tensor> & bias, double eps)
     {
         int N = 1;
         for(auto v:normalized_shape) {
@@ -165,19 +165,19 @@ namespace op_plugin {
         dlprim::ExecutionContext q=getExecutionContext(input);
         dlprim::Context ctx(q);
 
-        Tensor input_c = input.contiguous();
+        at::Tensor input_c = input.contiguous();
         dlprim::Tensor X = todp(input_c);
         TORCH_CHECK(X.shape().total_size() % N == 0,"Invalid input shape");
         int B = X.shape().total_size() / N;
         auto bn_shape = dlprim::Shape(1,B,N);
         auto src_shape = X.shape();
-        Tensor result = new_tensor_as(X.shape(),input);
+        at::Tensor result = new_tensor_as(X.shape(),input);
         dlprim::Tensor Y = todp(result);
         X.reshape(bn_shape);
         Y.reshape(bn_shape);
 
 
-        Tensor calc_mean_pt,calc_var_pt,calc_rstd_pt;
+        at::Tensor calc_mean_pt,calc_var_pt,calc_rstd_pt;
         dlprim::Tensor calc_mean,calc_var,calc_rstd;
 
         calc_mean_pt = new_tensor_as(dlprim::Shape(B),input);
@@ -219,17 +219,17 @@ namespace op_plugin {
                                       "y0 = x0 + x1;",
                                       q);
         }
-        return std::tuple<Tensor,Tensor,Tensor>(result,calc_mean_pt,calc_rstd_pt);
+        return std::tuple<at::Tensor,at::Tensor,at::Tensor>(result,calc_mean_pt,calc_rstd_pt);
     }
-    // {"schema": "aten::native_layer_norm_backward(Tensor grad_out, Tensor input, SymInt[] normalized_shape, Tensor mean, Tensor rstd, Tensor? weight, Tensor? bias, bool[3] output_mask) -> (Tensor, Tensor, Tensor)", "dispatch": "True", "default": "False"}
-    std::tuple<Tensor,Tensor,Tensor> native_layer_norm_backward(
-            const Tensor & grad_out,
-            const Tensor & input,
+    // {"schema": "aten::native_layer_norm_backward(at::Tensor grad_out, at::Tensor input, SymInt[] normalized_shape, at::Tensor mean, at::Tensor rstd, at::Tensor? weight, at::Tensor? bias, bool[3] output_mask) -> (at::Tensor, at::Tensor, at::Tensor)", "dispatch": "True", "default": "False"}
+    std::tuple<at::Tensor,at::Tensor,at::Tensor> native_layer_norm_backward(
+            const at::Tensor & grad_out,
+            const at::Tensor & input,
             at::IntArrayRef normalized_shape,
-            const Tensor & save_mean,
-            const Tensor & save_rstd,
-            const c10::optional<Tensor> & weight,
-            const c10::optional<Tensor> & bias,
+            const at::Tensor & save_mean,
+            const at::Tensor & save_rstd,
+            const c10::optional<at::Tensor> & weight,
+            const c10::optional<at::Tensor> & bias,
             ::std::array<bool,3> output_mask)
     {
         GUARD;
@@ -247,8 +247,8 @@ namespace op_plugin {
 
         dlprim::ExecutionContext q=getExecutionContext(input);
         dlprim::Context ctx(q);
-        Tensor grad_out_c = grad_out.contiguous();
-        Tensor input_c = input.contiguous();
+        at::Tensor grad_out_c = grad_out.contiguous();
+        at::Tensor input_c = input.contiguous();
         dlprim::Tensor dY = todp(grad_out_c);
         dlprim::Tensor X = todp(input_c);
         auto src_shape = X.shape();
@@ -265,7 +265,7 @@ namespace op_plugin {
             W.reshape(dlprim::Shape(N));
         }
 
-        Tensor x_diff,gamma_diff,beta_diff;
+        at::Tensor x_diff,gamma_diff,beta_diff;
 
         bool bwd_data=output_mask[0];
         bool bwd_gamma=output_mask[1] && weight_present;
@@ -335,7 +335,7 @@ namespace op_plugin {
         }
 
         sync_if_needed(input.device());
-        return std::tuple<torch::Tensor,torch::Tensor,torch::Tensor>(x_diff,gamma_diff,beta_diff);
+        return std::tuple<at::Tensor,at::Tensor,at::Tensor>(x_diff,gamma_diff,beta_diff);
     }
 
 }  /* namespace op_plugin */

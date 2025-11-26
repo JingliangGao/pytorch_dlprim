@@ -23,7 +23,7 @@ namespace ${namespace} {
 }  /* namespace at_torch */ 
 
 TORCH_LIBRARY_IMPL(_, PrivateUse1, m) {
-      m.fallback(torch::CppFunction::makeFromBoxedFunction<&at_torch::op_plugin::fallback>());
+      m.fallback(torch::CppFunction::makeFromBoxedFunction<&fallback>());
 }
 
 TORCH_LIBRARY_IMPL(${p_namespace}, PrivateUse1, m) {

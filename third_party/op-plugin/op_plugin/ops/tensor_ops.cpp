@@ -20,8 +20,8 @@ namespace op_plugin {
         return impl->getDevice();
     }
 
-    // {"schema": "aten::empty(SymInt[] size, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None, MemoryFormat? memory_format=None) -> Tensor", "dispatch": "True", "default": "False"}
-    torch::Tensor empty(IntArrayRef size, ::std::optional<at::ScalarType> dtype, ::std::optional<at::Layout> layout, ::std::optional<at::Device> device, ::std::optional<bool> pin_memory, ::std::optional<at::MemoryFormat> memory_format)
+    // {"schema": "aten::empty(SymInt[] size, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None, MemoryFormat? memory_format=None) -> at::Tensor", "dispatch": "True", "default": "False"}
+    at::Tensor empty(IntArrayRef size, ::std::optional<at::ScalarType> dtype, ::std::optional<at::Layout> layout, ::std::optional<at::Device> device, ::std::optional<bool> pin_memory, ::std::optional<at::MemoryFormat> memory_format)
     {
         GUARD;
         TORCH_CHECK(!layout || *layout == Layout::Strided,"pytorch_ocl supports only strided layout")
@@ -38,26 +38,26 @@ namespace op_plugin {
     }
 
 
-    torch::Tensor _reshape_alias(const Tensor & self, c10::IntArrayRef size, c10::IntArrayRef stride)
+    at::Tensor _reshape_alias(const at::Tensor & self, c10::IntArrayRef size, c10::IntArrayRef stride)
     {
         GUARD;
-        torch::Tensor data = at::alias(self);
+        at::Tensor data = at::alias(self);
         data.getIntrusivePtr()->set_sizes_and_strides(size,stride);
         return data;
     }
 
 /// "aten::empty_strided"
-    Tensor empty_strided(IntArrayRef size, IntArrayRef stride, ::std::optional<at::ScalarType> dtype, ::std::optional<at::Layout> layout, ::std::optional<at::Device> device, ::std::optional<bool> pin_memory) 
+    at::Tensor empty_strided(IntArrayRef size, IntArrayRef stride, ::std::optional<at::ScalarType> dtype, ::std::optional<at::Layout> layout, ::std::optional<at::Device> device, ::std::optional<bool> pin_memory) 
     {
         GUARD;
-        Tensor r = empty(size,dtype,layout,device,pin_memory,c10::nullopt);
+        at::Tensor r = empty(size,dtype,layout,device,pin_memory,c10::nullopt);
         return at_torch::op_plugin::_reshape_alias(r,size,stride);
     }
 
-    Tensor view_old(const Tensor & self, IntArrayRef size)
+    at::Tensor view_old(const at::Tensor & self, IntArrayRef size)
     {
         GUARD;
-        torch::Tensor data=at::alias(self);
+        at::Tensor data=at::alias(self);
         TORCH_CHECK(data.is_contiguous(),"View imlemented on contiguous array");
         std::vector<int64_t> v(size.begin(),size.end());
         int64_t total=1,index=-1;
@@ -83,7 +83,7 @@ namespace op_plugin {
     }
 
 
-    Tensor view(const Tensor & self, c10::IntArrayRef size)
+    at::Tensor view(const at::Tensor & self, c10::IntArrayRef size)
     {
         GUARD;
         //auto size = C10_AS_INTARRAYREF_SLOW(sym_size);
@@ -98,25 +98,25 @@ namespace op_plugin {
 
 
         auto stride_value = *stride;
-        Tensor data = at::alias(self);
+        at::Tensor data = at::alias(self);
         data.getIntrusivePtr()->set_sizes_and_strides(inferred_size,stride_value);
         return data;
     }
 
-    static Tensor make_contiguous_as_target_type(Tensor const &self,Tensor const &dst)
+    static at::Tensor make_contiguous_as_target_type(at::Tensor const &self,at::Tensor const &dst)
     {
         GUARD;
-        Tensor c_src = self;
+        at::Tensor c_src = self;
         if(self.dtype() != dst.dtype() || !self.is_contiguous()) {
             TensorOptions options = TensorOptions().dtype(dst.dtype()).memory_format(MemoryFormat::Contiguous);
-            Tensor temp = at::empty_like(c_src,options);
+            at::Tensor temp = at::empty_like(c_src,options);
             temp.copy_(c_src);
             c_src = temp;
         }
         return c_src;
     }
 
-    Tensor _copy_from(const Tensor & self, const Tensor & dst, bool non_blocking)
+    at::Tensor _copy_from(const at::Tensor & self, const at::Tensor & dst, bool non_blocking)
     {
         GUARD;
         if(self.numel() == 0 && dst.numel() == 0) {
@@ -124,7 +124,7 @@ namespace op_plugin {
         }
         
         if(dst.device().type() == c10::DeviceType::CPU && self.device().type() == OpenCLDeviceType) {
-            Tensor c_src = make_contiguous_as_target_type(self,dst);
+            at::Tensor c_src = make_contiguous_as_target_type(self,dst);
             dlprim::Tensor t = todp(c_src);
             auto ec = getExecutionContext(self);
             if(dst.is_contiguous()) {
@@ -133,14 +133,14 @@ namespace op_plugin {
             }
             else {
                 TensorOptions options = TensorOptions().memory_format(MemoryFormat::Contiguous);
-                Tensor dst_c = at::empty_like(dst,options);
+                at::Tensor dst_c = at::empty_like(dst,options);
                 void *ptr = dst_c.data_ptr();
                 t.to_host(ec,ptr);
                 dst.copy_(dst_c);
             }
         }
         else if(self.device().type() == c10::DeviceType::CPU && dst.device().type() == OpenCLDeviceType) {
-            Tensor c_src = make_contiguous_as_target_type(self,dst);
+            at::Tensor c_src = make_contiguous_as_target_type(self,dst);
             auto ec = getExecutionContext(dst);
             if(dst.is_contiguous()) {
                 dlprim::Tensor t(todp(dst));
@@ -148,7 +148,7 @@ namespace op_plugin {
             }
             else {
                 TensorOptions options = TensorOptions().memory_format(MemoryFormat::Contiguous);
-                Tensor temp = at::empty_like(dst,options);
+                at::Tensor temp = at::empty_like(dst,options);
                 dlprim::Tensor t(todp(temp));
                 t.to_device(ec,c_src.data_ptr());
                 dst.copy_(temp);
@@ -186,14 +186,14 @@ namespace op_plugin {
         return self;
     }
 
-    // {"schema": "aten::_copy_from_and_resize(Tensor self, Tensor dst) -> Tensor", "dispatch": "True", "default": "False"}
-    Tensor _copy_from_and_resize(const Tensor & self, const Tensor & dst)
+    // {"schema": "aten::_copy_from_and_resize(at::Tensor self, at::Tensor dst) -> at::Tensor", "dispatch": "True", "default": "False"}
+    at::Tensor _copy_from_and_resize(const at::Tensor & self, const at::Tensor & dst)
     {
         return at_torch::op_plugin::_copy_from(self,dst,false);
     }
 
-    // {"schema": "aten::copy_(Tensor(a!) self, Tensor src, bool non_blocking=False) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & copy_(Tensor & self, const Tensor & src, bool non_blocking) {
+    // {"schema": "aten::copy_(at::Tensor(a!) self, at::Tensor src, bool non_blocking=False) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & copy_(at::Tensor & self, const at::Tensor & src, bool non_blocking) {
         GUARD;
 
         // If same storage / same tensor, nothing to do
@@ -213,7 +213,7 @@ namespace op_plugin {
         return self;
     }
 
-    at::Tensor _to_copy(const Tensor & self, ::std::optional<at::ScalarType> dtype, ::std::optional<at::Layout> layout, ::std::optional<at::Device> device, ::std::optional<bool> pin_memory, bool non_blocking, ::std::optional<at::MemoryFormat> memory_format){
+    at::Tensor _to_copy(const at::Tensor & self, ::std::optional<at::ScalarType> dtype, ::std::optional<at::Layout> layout, ::std::optional<at::Device> device, ::std::optional<bool> pin_memory, bool non_blocking, ::std::optional<at::MemoryFormat> memory_format){
         GUARD;
 
         // 1) 构造 override options 并合并
@@ -298,7 +298,7 @@ namespace op_plugin {
     }
 
 
-    Tensor &fill_(Tensor &self, const c10::Scalar &value)
+    at::Tensor &fill_(at::Tensor &self, const c10::Scalar &value)
     {
         GUARD;
         dlprim::Tensor t(todp(self));
@@ -308,12 +308,12 @@ namespace op_plugin {
         return self;
     }
     
-    Tensor &zero_(Tensor &self)
+    at::Tensor &zero_(at::Tensor &self)
     {
         GUARD;
         if(self.numel() == 0)
             return self;
-        Tensor self_c = self.contiguous();
+        at::Tensor self_c = self.contiguous();
         dlprim::Tensor t(todp(self));
         dlprim::core::fill_tensor(t,0.0,getExecutionContext(self));
         if(!self.is_contiguous())
@@ -321,10 +321,10 @@ namespace op_plugin {
         return self;
     }
 
-    Tensor as_strided(const Tensor & self, IntArrayRef size, IntArrayRef stride, c10::optional<int64_t> storage_offset)
+    at::Tensor as_strided(const at::Tensor & self, IntArrayRef size, IntArrayRef stride, c10::optional<int64_t> storage_offset)
     {
         GUARD;
-        Tensor result = at::alias(self);
+        at::Tensor result = at::alias(self);
         result.getIntrusivePtr()->set_sizes_and_strides(size,stride);
         if(storage_offset)
             result.getIntrusivePtr()->set_storage_offset(*storage_offset);
@@ -332,8 +332,8 @@ namespace op_plugin {
 
     }
 
-    // {"schema": "aten::_local_scalar_dense(Tensor self) -> Scalar", "dispatch": "True", "default": "False"}
-    Scalar _local_scalar_dense(const Tensor & self)
+    // {"schema": "aten::_local_scalar_dense(at::Tensor self) -> Scalar", "dispatch": "True", "default": "False"}
+    Scalar _local_scalar_dense(const at::Tensor & self)
     {
         GUARD;
         TORCH_CHECK(self.numel()==1);
@@ -396,12 +396,12 @@ namespace op_plugin {
         }
     }
     
-    // {"schema": "aten::masked_select(Tensor self, Tensor mask) -> Tensor", "dispatch": "True", "default": "False"}
-    Tensor masked_select(const Tensor & self, const Tensor & mask)
+    // {"schema": "aten::masked_select(at::Tensor self, at::Tensor mask) -> at::Tensor", "dispatch": "True", "default": "False"}
+    at::Tensor masked_select(const at::Tensor & self, const at::Tensor & mask)
     {
         GUARD;
-        Tensor self_c = self.contiguous();
-        Tensor mask_c = mask.contiguous();
+        at::Tensor self_c = self.contiguous();
+        at::Tensor mask_c = mask.contiguous();
         dlprim::Tensor x = todp(self_c);
         dlprim::Tensor m = todp(mask_c);
         TORCH_CHECK(x.shape() == m.shape(),"Broadasting is not implemented in masked_select yet");
@@ -443,7 +443,7 @@ namespace op_plugin {
         default:
             TORCH_CHECK(!"Not implemented dtype","Not implemented");
         }
-        Tensor res=new_tensor_as(dlprim::Shape(N),self);
+        at::Tensor res=new_tensor_as(dlprim::Shape(N),self);
         if(N > 0) {
             dlprim::Tensor y=todp(res);
             y.to_device(getExecutionContext(self),x.host_data());
@@ -452,8 +452,8 @@ namespace op_plugin {
         return res;
     }
    
-    // {"schema": "aten::set_.source_Storage_storage_offset(Tensor(a!) self, Storage source, SymInt storage_offset, SymInt[] size, SymInt[] stride=[]) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & set_(Tensor & self, Storage source, int64_t storage_offset, at::IntArrayRef size, at::IntArrayRef stride)
+    // {"schema": "aten::set_.source_Storage_storage_offset(at::Tensor(a!) self, Storage source, SymInt storage_offset, SymInt[] size, SymInt[] stride=[]) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & set_(at::Tensor & self, Storage source, int64_t storage_offset, at::IntArrayRef size, at::IntArrayRef stride)
     {
         c10::intrusive_ptr<c10::TensorImpl> impl = self.getIntrusivePtr(); 
         impl->set_storage_keep_dtype(source);
@@ -461,8 +461,8 @@ namespace op_plugin {
         return self;
     }
 
-    // {"schema": "aten::set_.source_Storage(Tensor(a!) self, Storage source) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & set_(Tensor & self, Storage source)
+    // {"schema": "aten::set_.source_Storage(at::Tensor(a!) self, Storage source) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & set_(at::Tensor & self, Storage source)
     {
         c10::intrusive_ptr<c10::TensorImpl> impl = self.getIntrusivePtr(); 
         auto size = source.nbytes();
@@ -475,7 +475,7 @@ namespace op_plugin {
         return self;
     }
 
-    Tensor & set_(Tensor & self, const Tensor & source, int64_t storage_offset, IntArrayRef size, IntArrayRef stride)
+    at::Tensor & set_(at::Tensor & self, const at::Tensor & source, int64_t storage_offset, IntArrayRef size, IntArrayRef stride)
     {
 
         at::TensorImpl* self_impl  = self.unsafeGetTensorImpl();
@@ -515,8 +515,8 @@ namespace op_plugin {
         return self;
     }
 
-   // {"schema": "aten::set_(Tensor(a!) self) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & set_(Tensor & self) {
+   // {"schema": "aten::set_(at::Tensor(a!) self) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & set_(at::Tensor & self) {
         GUARD;
 
         // 保存 dtype（与 NPU 实现一致，后面断言不被改变）
@@ -560,8 +560,8 @@ namespace op_plugin {
     }
 
 
-    // {"schema": "aten::resize_(Tensor(a!) self, SymInt[] size, *, MemoryFormat? memory_format=None) -> Tensor(a!)", "dispatch": "True", "default": "False"}    
-    const Tensor & resize_(const Tensor & self, at::IntArrayRef size, ::std::optional<at::MemoryFormat> memory_format)
+    // {"schema": "aten::resize_(at::Tensor(a!) self, SymInt[] size, *, MemoryFormat? memory_format=None) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}    
+    const at::Tensor & resize_(const at::Tensor & self, at::IntArrayRef size, ::std::optional<at::MemoryFormat> memory_format)
     {
         if(memory_format) {
             TORCH_CHECK(*memory_format == MemoryFormat::Contiguous, "resize_ only supports contiguous memory format");
@@ -644,7 +644,7 @@ namespace op_plugin {
         return r;
     }
 
-    /* {"schema": "to.device(Tensor(a) self, Device device, ScalarType dtype, bool non_blocking=False, bool copy=False, MemoryFormat? memory_format=None) -> Tensor(a)" */
+    /* {"schema": "to.device(at::Tensor(a) self, Device device, ScalarType dtype, bool non_blocking=False, bool copy=False, MemoryFormat? memory_format=None) -> at::Tensor(a)" */
     at::Tensor to(
         const at::Tensor& self,
         c10::Device device,
@@ -663,7 +663,7 @@ namespace op_plugin {
         return to_impl_dlprim(self, opts, non_blocking, copy);
     }
 
-    /* "schema": "to.dtype(Tensor(a) self, ScalarType dtype, bool non_blocking=False, bool copy=False, MemoryFormat? memory_format=None) -> Tensor(a)" */
+    /* "schema": "to.dtype(at::Tensor(a) self, ScalarType dtype, bool non_blocking=False, bool copy=False, MemoryFormat? memory_format=None) -> at::Tensor(a)" */
     at::Tensor to(
         const at::Tensor& self,
         at::ScalarType dtype,
@@ -695,12 +695,12 @@ namespace op_plugin {
             opts = opts.memory_format(optional_memory_format.value());
         }
 
-        Tensor tmp = at::empty(self.sizes(), opts);
+        at::Tensor tmp = at::empty(self.sizes(), opts);
         tmp.copy_(self, non_blocking);
         return tmp;
     }
 
-    /* {"schema": "Tensor(a) self, Tensor other, bool non_blocking=False, bool copy=False, MemoryFormat? memory_format=None) -> Tensor(a)"}*/
+    /* {"schema": "at::Tensor(a) self, at::Tensor other, bool non_blocking=False, bool copy=False, MemoryFormat? memory_format=None) -> at::Tensor(a)"}*/
     at::Tensor to(
         const at::Tensor& self,
         const at::Tensor& other,
@@ -716,14 +716,7 @@ namespace op_plugin {
         return to_impl_dlprim(self, opts, non_blocking, copy);
     }
 
-    bool _has_compatible_shallow_copy_type(const at::Tensor & self, const at::Tensor & from) {
-        c10::DispatchKeySet self_keyset = self.key_set();
-        c10::DispatchKeySet from_keyset = from.key_set();
-        auto is_dense = [](c10::DispatchKeySet ks) {
-            return ks.has(c10::DispatchKey::CPU) || ks.has(c10::DispatchKey::PrivateUse1);
-        };
-        return (self_keyset == from_keyset) || (is_dense(self_keyset) && is_dense(from_keyset));
-    }
+    
 
   }  /* namespace op_plugin */
 }  /* namespace at_torch */

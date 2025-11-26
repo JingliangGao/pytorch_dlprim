@@ -18,8 +18,8 @@ namespace op_plugin {
         return  s;
     }
 
-    // {"schema": "aten::bernoulli_.float(Tensor(a!) self, float p=0.5, *, Generator? generator=None) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & bernoulli_(Tensor & self, double p, c10::optional<Generator> generator)
+    // {"schema": "aten::bernoulli_.float(at::Tensor(a!) self, float p=0.5, *, Generator? generator=None) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & bernoulli_(at::Tensor & self, double p, c10::optional<Generator> generator)
     {
         GUARD;
         dlprim::Tensor rnd=todp(self);
@@ -29,8 +29,8 @@ namespace op_plugin {
         return self;
     }
 
-    // {"schema": "aten::normal_(Tensor(a!) self, float mean=0, float std=1, *, Generator? generator=None) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & normal_(Tensor & self, double mean, double std, c10::optional<Generator> generator)
+    // {"schema": "aten::normal_(at::Tensor(a!) self, float mean=0, float std=1, *, Generator? generator=None) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & normal_(at::Tensor & self, double mean, double std, c10::optional<Generator> generator)
     {
         GUARD;
         dlprim::Tensor rnd=todp(self);
@@ -40,8 +40,8 @@ namespace op_plugin {
         return self;
     }
 
-    // {"schema": "aten::uniform_(Tensor(a!) self, float from=0, float to=1, *, Generator? generator=None) -> Tensor(a!)", "dispatch": "True", "default": "False"}
-    Tensor & uniform_(Tensor & self, double from, double to, c10::optional<Generator> generator)
+    // {"schema": "aten::uniform_(at::Tensor(a!) self, float from=0, float to=1, *, Generator? generator=None) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+    at::Tensor & uniform_(at::Tensor & self, double from, double to, c10::optional<Generator> generator)
     {
         GUARD;
         dlprim::Tensor rnd=todp(self);
@@ -50,14 +50,14 @@ namespace op_plugin {
         sync_if_needed(self.device());
         return self;
     }
-    // {"schema": "aten::native_dropout(Tensor input, float p, bool? train) -> (Tensor, Tensor)", "dispatch": "True", "default": "False"}
-    ::std::tuple<Tensor,Tensor> native_dropout(const Tensor & input, double p, ::std::optional<bool> train)
+    // {"schema": "aten::native_dropout(at::Tensor input, float p, bool? train) -> (at::Tensor, at::Tensor)", "dispatch": "True", "default": "False"}
+    ::std::tuple<at::Tensor,at::Tensor> native_dropout(const at::Tensor & input, double p, ::std::optional<bool> train)
     {
         GUARD;
-        Tensor input_c = input.contiguous();
+        at::Tensor input_c = input.contiguous();
         dlprim::Tensor X = todp(input_c);
-        Tensor mask = new_tensor_as(X.shape(),input_c);
-        Tensor res =  new_tensor_as(X.shape(),input_c);
+        at::Tensor mask = new_tensor_as(X.shape(),input_c);
+        at::Tensor res =  new_tensor_as(X.shape(),input_c);
         dlprim::Tensor Y = todp(res);
         dlprim::Tensor M = todp(mask);
         if(train && *train && p > 0) {
@@ -72,15 +72,15 @@ namespace op_plugin {
         sync_if_needed(input.device());
         return std::make_pair(res,mask);
     }
-    // {"schema": "aten::native_dropout_backward(Tensor grad_output, Tensor mask, float scale) -> Tensor", "dispatch": "True", "default": "False"}
-    Tensor native_dropout_backward(const Tensor & grad_output, const Tensor & mask, double scale)
+    // {"schema": "aten::native_dropout_backward(at::Tensor grad_output, at::Tensor mask, float scale) -> at::Tensor", "dispatch": "True", "default": "False"}
+    at::Tensor native_dropout_backward(const at::Tensor & grad_output, const at::Tensor & mask, double scale)
     {
         GUARD;
-        Tensor grad_output_c=grad_output.contiguous();
-        Tensor mask_c=mask.contiguous();
+        at::Tensor grad_output_c=grad_output.contiguous();
+        at::Tensor mask_c=mask.contiguous();
         dlprim::Tensor dy = todp(grad_output_c);
         dlprim::Tensor m = todp(mask_c);
-        Tensor res =  new_tensor_as(dy.shape(),grad_output);
+        at::Tensor res =  new_tensor_as(dy.shape(),grad_output);
         dlprim::Tensor dx = todp(res);
         dlprim::core::pointwise_operation({dy,m},{dx},{scale},
                 "y0 = x0*x1*w0;",

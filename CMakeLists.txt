@@ -60,22 +60,23 @@ if(NOT WIN32)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O2 -Wall")
 endif()
 
+# collect source files in third_party/op-plugin/
+file(GLOB OP_PLUGIN_SOURCES
+    third_party/op-plugin/op_plugin/ops/*.cpp
+    third_party/op-plugin/op_plugin/generate/*.cpp
+)
+
+# collect source files in src/
+file(GLOB PYOCL_SOURCES
+    src/*.cpp
+)
+
 # Define our library target
-add_library(libpt_ocl SHARED 
-    third_party/op-plugin/op_plugin/ops/common_ops.cpp
-    third_party/op-plugin/op_plugin/ops/pointwise_ops.cpp
-    third_party/op-plugin/op_plugin/ops/tensor_ops.cpp
-    third_party/op-plugin/op_plugin/ops/vision_ops.cpp
-    third_party/op-plugin/op_plugin/ops/loss_ops.cpp
-    third_party/op-plugin/op_plugin/ops/random_ops.cpp
-    third_party/op-plugin/op_plugin/ops/norm_ops.cpp
-    third_party/op-plugin/op_plugin/generate/RegisterOps.cpp
-    src/utils.cpp
-    src/registeration.cpp
-    src/CLTensor.cpp
-    src/guard.cpp
-    src/pybind.cpp
-    )
+add_library(libpt_ocl SHARED
+    ${OP_PLUGIN_SOURCES}
+    ${PYOCL_SOURCES}
+)
+
 
 
 target_compile_features(libpt_ocl PRIVATE cxx_std_17)
