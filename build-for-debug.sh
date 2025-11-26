@@ -36,7 +36,7 @@ fi
 # build project
 cd ${PROJECT_DIR}
 cd ${build_folder}
-TorchDir=$(pip3 show torch | awk '/Editable project location:/ {print $2}')
+TorchDir=$(pip3 show torch | awk '/Location:/ {print $2}')
 PYROOT=$(python3 -c "import sys; print(sys.prefix)")
 PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
 
@@ -47,7 +47,6 @@ if [[ -n "$CONDA_DEFAULT_ENV" ]]; then
           -DCMAKE_INSTALL_PREFIX=${PROJECT_DIR}/${install_folder} \
           -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
           -DOCL_PATH=/usr/include \
-          -DALLOW_PYBIND=ON \
           -DPython3_ROOT_DIR=${PYROOT} \
           -DPython3_FIND_STRATEGY=LOCATION \
           -DPython3_FIND_REGISTRY=NEVER ..
@@ -59,10 +58,10 @@ else
           -DCMAKE_INSTALL_PREFIX=${PROJECT_DIR}/${install_folder} \
           -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
           -DOCL_PATH=/usr/include \
-          -DALLOW_PYBIND=ON \
           -DPython3_ROOT_DIR=${PYROOT} \
           -DPython3_FIND_STRATEGY=LOCATION \
-          -DPython3_FIND_REGISTRY=NEVER ..
+          -DPython3_FIND_REGISTRY=NEVER \
+          ..
 fi
 
 echo ">> [INFO]: Start building ..."

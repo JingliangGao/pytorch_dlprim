@@ -22,13 +22,13 @@ sudo apt update
 sudo apt install -y ocl-icd-opencl-dev opencl-headers
 sudo mkdir -p /usr/local/include/CL && sudo cp tools/opencl.hpp /usr/local/include/CL/
 sudo apt install -y libfmt-dev
-pip install -r requirements.txt
 ```
 
 2. build project
 ```shell
 git clone --recursive https://github.com/JingliangGao/pytorch_dlprim.git
 cd pytorch_dlprim && git checkout dev-opencl
+pip install -r requirements.txt
 chmod +x build-for-debug.sh && ./build-for-debug.sh
 ```
 

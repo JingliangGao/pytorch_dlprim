@@ -1,11 +1,19 @@
 cmake_minimum_required(VERSION 3.10)
 project(pytorch_dlprim)
 find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
-set(CMAKE_PREFIX_PATH "/home/kylin/gjl/project/pytorch_dlprim/third_party/pytorch")
+
+# Find Torch
+execute_process(
+    COMMAND pip3 show torch
+    OUTPUT_VARIABLE TORCH_PIP_INFO
+)
+string(REGEX MATCH "Location: ([^\n\r]+)" _match "${TORCH_PIP_INFO}")
+set(TORCH_LOCATION "${CMAKE_MATCH_1}")
+set(CMAKE_PREFIX_PATH ${TORCH_LOCATION}/torch/share/cmake/Torch)   
 find_package(Torch REQUIRED)
-find_package(fmt REQUIRED)
 
 # Find fmt library
+find_package(fmt REQUIRED)
 if(fmt_FOUND)
     message(STATUS "fmt library found!")
     get_target_property(FMT_INCLUDE_DIRS fmt::fmt INTERFACE_INCLUDE_DIRECTORIES)
@@ -18,6 +26,15 @@ else()
     message(FATAL_ERROR "fmt library not found!")
 endif()
 
+# Find pybind11 
+find_package(pybind11 REQUIRED)
+
+# Start codegen
+message(" Starting code generation for op-plugin ...")
+execute_process(
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/third_party/op-plugin/build-for-debug.sh
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/third_party/op-plugin
+)
 
 # Set some options
 option(BUILD_CORE_ONLY "Core Build" ON)
