@@ -1,9 +1,8 @@
 from collections import defaultdict
-from typing import (List, Dict, Optional, Set, Callable, Any,
-                    Union, TypeVar, Iterable, Tuple, overload)
-from torchgen.model import NativeFunction, Argument, TensorOptionsArguments
-from torchgen.utils import Target, concatMap, context, NamespaceHelper
-from torchgen.api.types.signatures import NativeSignature, DispatcherSignature
+from typing import (List, Dict, Optional, Tuple, overload)
+from torchgen.model import NativeFunction, Argument
+from torchgen.utils import concatMap, context
+from torchgen.api.types.signatures import NativeSignature
 from torchgen.context import native_function_manager
 from codegen.utils import get_torchgen_dir
 from torchgen.gen import parse_tags_yaml
@@ -13,6 +12,7 @@ from pathlib import Path
 from codegen.config import AutogradPrivateUse1_Op, AllPrivateUse1_Op, NAMESPACE
 
 SYMINT_SET = set()
+
 
 def sort_native_yaml(path: str):
     # open yaml file
@@ -46,8 +46,6 @@ def sort_native_yaml(path: str):
     return new_yaml_path
     
     
-
-
 def parse_native_yaml_struct(
     es: object,
 ) -> List[NativeFunction]:

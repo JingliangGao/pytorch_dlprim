@@ -1,27 +1,14 @@
-import os
-import stat
-import sys
-import torchgen.gen
-from codegen.utils import PathManager
-from typing import List, Optional, Set, Dict, Union, Sequence, Iterator, Tuple
-from torchgen.utils import (NamespaceHelper, 
-                            OrderedSet,
-                              )
-from torchgen.context import native_function_manager
+
+import torchgen
+from torchgen.utils import NamespaceHelper 
+
 from torchgen.model import (
-    Arguments,
-    BackendIndex,
     BackendMetadata,
     DispatchKey,
-    is_cuda_dispatch_key,
     NativeFunction,
-    NativeFunctionsGroup,
     FunctionSchema,
     OperatorName,
-    TensorOptionsArguments,
-    SchemaKind,
     DeviceCheckType,
-    Argument,
     Location,
     is_structured_dispatch_key, 
     DEFAULT_KERNEL_NAMESPACE,
@@ -32,64 +19,8 @@ from torchgen.model import (
     UFUNC_DISPATCH_KEYS,
     Precompute
 )
-from torchgen.utils import Target
-import torchgen.dest as dest
-from torchgen.api.cpp import JIT_TO_CPP_DEFAULT
-import traceback
-import torchgen.api.dispatcher as dispatcher
-import torchgen.api.native as native
 
-def get_torchgen_dir():
-    # get path of torchgen, then get tags.yaml and native_functions.yaml
-    try:
-        import torchgen
-        return os.path.dirname(os.path.realpath(torchgen.__file__))
-    except Exception:
-        _, _, exc_traceback = sys.exc_info()
-        frame_summary = traceback.extract_tb(exc_traceback)[-1]
-        return os.path.dirname(frame_summary.filename)
-DEVICE_CHECK_NOTSUPPORT_TYPE = {"Tensor[]?"}
 
-def _write_if_changed_security(self, filename: str, contents: str) -> None:
-    old_contents: Optional[str]
-    filepath = os.path.realpath(filename)
-    try:
-        with open(filepath, 'r') as f:
-            old_contents = f.read()
-    except IOError:
-        old_contents = None
-    if contents != old_contents:
-        PathManager.remove_path_safety(filepath)
-        with os.fdopen(os.open(filepath, os.O_RDWR | os.O_CREAT, stat.S_IWUSR | stat.S_IRUSR), "w") as f:
-            f.write(contents)
-        os.chmod(filepath, stat.S_IRUSR | stat.S_IEXEC | stat.S_IRGRP | stat.S_IXGRP)
-
-def gen_device_check(
-    type: DeviceCheckType, args: List[Argument], method_name: str
-) -> str:
-    if type == DeviceCheckType.NoCheck:
-        return "  // No device check\n"
-
-    device_check = "c10::optional<at::Device> common_device = at::nullopt;\n"
-    device_check += "(void)common_device; // Suppress unused variable warning\n"
-    for arg in args:
-        # Only tensor like arguments are eligible
-        if arg.type.is_tensor_like() and str(arg.type) not in DEVICE_CHECK_NOTSUPPORT_TYPE:
-            device_check += \
-f"""c10::impl::check_and_update_common_device(common_device, {arg.name}, "{method_name}", "{arg.name}");\n"""
-    return device_check
-
-def add_header_to_template_file():
-    torchgen_path = get_torchgen_dir()
-    template_dir = os.path.join(torchgen_path, "packaged/ATen/templates/DispatchKeyNativeFunctions.h")
-    PathManager.check_directory_path_readable(template_dir)
-    with open(template_dir, "r") as file:
-        template_content = file.read()
-    if "#include <ATen/ATen.h>" not in template_content:
-        template_content = template_content.replace("#include <ATen/Tensor.h>",
-                                                    "#include <ATen/Tensor.h>\n#include <ATen/ATen.h>")
-        with os.fdopen(os.open(template_dir, os.O_WRONLY, stat.S_IWUSR | stat.S_IRUSR), "w") as file:
-            file.write(template_content)
 
 def patch__post_init__(self) -> None:
     pass
@@ -465,16 +396,6 @@ def patch__from_yaml(
         )
 
 def apply_codegen_patches():
-    torchgen.gen.FileManager._write_if_changed = _write_if_changed_security
     torchgen.model.NativeFunction.__post_init__ = patch__post_init__
     torchgen.model.NativeFunction.from_yaml = patch__from_yaml
-
-def apply_torchgen_patch():
-    # dest.RegisterDispatchKey.gen_unstructured = gen_unstructured
-    dest.RegisterDispatchKey.gen_device_check = gen_device_check
-    # generate default arguments
-    JIT_TO_CPP_DEFAULT["contiguous_format"] = "c10::MemoryFormat::Contiguous"
-    add_header_to_template_file()
-    dispatcher.arguments = native.arguments
-    
 

@@ -50,17 +50,6 @@ def main() -> None:
     )
     print(f"[INFO] succeed to generate 'OpInterface.h' in '{options.output_dir}'")
 
-    # # write "OpInterface.cpp" file
-    # fm.write_with_template(
-    #     "OpInterface.cpp",
-    #     "OpInterface.cpp",
-    #     lambda: {
-    #         "namespace": NAMESPACE,
-    #         "declarations": dispatch_registrations_body,
-    #     },
-    # )
-    # print(f"[INFO] succeed to generate 'OpInterface.cpp' in '{options.output_dir}'")
-
     # write "Register.cpp" file
     fm.write_with_template(
         "RegisterOps.cpp",

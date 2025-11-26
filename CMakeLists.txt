@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 project(pytorch_dlprim)
 find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
+set(CMAKE_PREFIX_PATH "/home/kylin/gjl/project/pytorch_dlprim/third_party/pytorch")
 find_package(Torch REQUIRED)
 find_package(fmt REQUIRED)
 
@@ -26,15 +27,16 @@ option(BUILD_EXAMPLES "Build example programs" OFF)
 
 add_subdirectory(third_party/dlprimitives)
 include_directories("${OCL_PATH}")
-include_directories(${Python3_INCLUDE_DIRS})
-
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/third_party/dlprimitives)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/dlprimitives/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/op-plugin/op_plugin/generate)
-message("  Pytorch libraries ${TORCH_LIBRARIES}")
-message("  Python libraries ${PYTHON_LIBRARIES}")
-message("  Python include ${Python3_INCLUDE_DIRS}")
+include_directories(${Python3_INCLUDE_DIRS})   # Python include
+include_directories(${pybind11_INCLUDE_DIRS})  # pybind11 include
+
+message(" Pytorch libraries: ${TORCH_LIBRARIES}")
+message(" Python libraries: ${Python3_LIBRARIES}")
+message(" Python include: ${Python3_INCLUDE_DIRS}")
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 if(NOT WIN32)
@@ -42,47 +44,31 @@ if(NOT WIN32)
 endif()
 
 # Define our library target
-if(ALLOW_PYBIND)
-    add_library(libpt_ocl SHARED 
-            third_party/op-plugin/op_plugin/ops/common_ops.cpp
-            third_party/op-plugin/op_plugin/ops/pointwise_ops.cpp
-            third_party/op-plugin/op_plugin/ops/tensor_ops.cpp
-            third_party/op-plugin/op_plugin/ops/vision_ops.cpp
-            third_party/op-plugin/op_plugin/ops/loss_ops.cpp
-            third_party/op-plugin/op_plugin/ops/random_ops.cpp
-            third_party/op-plugin/op_plugin/ops/norm_ops.cpp
-            third_party/op-plugin/op_plugin/generate/RegisterOps.cpp
-            src/utils.cpp
-            src/registeration.cpp
-            src/CLTensor.cpp
-            src/guard.cpp
-            src/pybind.cpp
-            )
-else()
-    add_library(libpt_ocl SHARED 
-            third_party/op-plugin/op_plugin/ops/common_ops.cpp
-            third_party/op-plugin/op_plugin/ops/pointwise_ops.cpp
-            third_party/op-plugin/op_plugin/ops/tensor_ops.cpp
-            third_party/op-plugin/op_plugin/ops/vision_ops.cpp
-            third_party/op-plugin/op_plugin/ops/loss_ops.cpp
-            third_party/op-plugin/op_plugin/ops/random_ops.cpp
-            third_party/op-plugin/op_plugin/ops/norm_ops.cpp
-            third_party/op-plugin/op_plugin/generate/RegisterOps.cpp
-            src/utils.cpp
-            src/registeration.cpp
-            src/CLTensor.cpp
-            src/guard.cpp
-            )
-endif()
+add_library(libpt_ocl SHARED 
+    third_party/op-plugin/op_plugin/ops/common_ops.cpp
+    third_party/op-plugin/op_plugin/ops/pointwise_ops.cpp
+    third_party/op-plugin/op_plugin/ops/tensor_ops.cpp
+    third_party/op-plugin/op_plugin/ops/vision_ops.cpp
+    third_party/op-plugin/op_plugin/ops/loss_ops.cpp
+    third_party/op-plugin/op_plugin/ops/random_ops.cpp
+    third_party/op-plugin/op_plugin/ops/norm_ops.cpp
+    third_party/op-plugin/op_plugin/generate/RegisterOps.cpp
+    src/utils.cpp
+    src/registeration.cpp
+    src/CLTensor.cpp
+    src/guard.cpp
+    src/pybind.cpp
+    )
+
 
 target_compile_features(libpt_ocl PRIVATE cxx_std_17)
 
 # Link against LibTorch
 target_include_directories(libpt_ocl PRIVATE ${FMT_INCLUDE_DIRS})
 target_compile_definitions(libpt_ocl PRIVATE FMT_HEADER_ONLY)
-target_link_libraries(libpt_ocl PRIVATE ${TORCH_LIBRARIES} ${OCL_LIB} dlprim_core)
+target_link_libraries(libpt_ocl PRIVATE ${TORCH_LIBRARIES} ${OCL_LIB} dlprim_core ${Python3_LIBRARIES})
 if(WIN32)
-    target_link_libraries(libpt_ocl ${PYTHON_LIBRARIES})
+    target_link_libraries(libpt_ocl ${Python3_LIBRARIES})
 endif()
 set_target_properties(libpt_ocl PROPERTIES PREFIX "" OUTPUT_NAME "libpt_ocl")
 if(NOT WIN32)
@@ -108,4 +94,3 @@ install(TARGETS libpt_ocl
 if(BUILD_EXAMPLES)
     add_subdirectory(examples/cplus)
 endif()
-

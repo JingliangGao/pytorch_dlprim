@@ -1,14 +1,15 @@
-#include <dlfcn.h>
-#include <fstream>
-#include <torch/torch.h>
-#include <torch/script.h>
 #include <iostream>
+#include <dlfcn.h>
+#include <torch/torch.h>
+#include <torch/script.h> 
 
 
-const char* lib_path = "<path-to-libpt_ocl.so>";
-const std::string scripted_model = "<path-to-scripted_model.pt>";
 
-void infer_net() {
+torch::Device device(torch::kPrivateUse1, 0);    /* backend : torch::kPrivateUse1, torch::kCPU  */
+
+
+void load_device() {
+    const char* lib_path = "<path-to-pt_ocl.so>";
     /* load dynamic library */
     void* handle = dlopen(lib_path, RTLD_NOW | RTLD_GLOBAL);
     if (!handle) {
@@ -16,15 +17,16 @@ void infer_net() {
         exit(1);
     }
     std::cout << "Dynamic library loaded successfully: " << lib_path << std::endl;
+}
 
-    /* register ocl backend */
-    torch::register_privateuse1_backend("ocl");
-    torch::Device device("cpu");    /* option: "cpu", "ocl:0" */
 
+void infer_net_torchscript() {
     /* create dummy input */
     torch::Tensor input = torch::randn({1, 1, 28, 28}).to(device);
+    std::cout << "Input : " << input << std::endl;
 
     /* load scripted module */
+    std::string scripted_model = "<path-to-mnist_cnn-scripted.pt>";
     std::cout << "Loading scripted module: " << scripted_model << std::endl;
     auto module = torch::jit::load(scripted_model);
     module.to(device);
@@ -37,7 +39,9 @@ void infer_net() {
     std::cout << "Predicted class (scripted): " << top.item<int>() << std::endl;
 }
 
+
 int main() {
-    infer_net();
+    load_device();
+    infer_net_torchscript();
     return 0;
 } 

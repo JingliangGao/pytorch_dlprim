@@ -3,19 +3,22 @@
 namespace at_torch {
 namespace op_plugin {
 
-// Register privateuse1 backend name on library load so user code doesn't have
-// to call torch::register_privateuse1_backend("ocl") manually. This helps
-// ensure dispatch name mapping is in place before users create Devices like
-// torch::Device(torch::kPrivateUse1, idx) or call module.to(device).
-__attribute__((constructor)) static void ptdlprim_library_init() {
-    try {
-        // This call is idempotent: repeated registration is safe.
-        torch::register_privateuse1_backend("ocl");
-        std::cerr << "ptdlprim: registered privateuse1 backend name 'ocl'\n";
-    } catch (const std::exception &e) {
-        std::cerr << "ptdlprim: failed to register privateuse1 backend: " << e.what() << std::endl;
+
+    static inline c10::Device ensure_has_index(c10::Device device) {
+        // 对 OpenCL 后端，若没有 index，则默认回退到 ocl:0
+        if (device.is_cpu() || device.has_index()) {
+            return device;
+        }
+        // 如果 DeviceType 是自定义的 OpenCLDeviceType，无法保证 getDeviceGuardImpl 可用，
+        // 所以直接返回默认 OpenCL 设备(0)。
+        if (device.type() == OpenCLDeviceType) {
+            return c10::Device(OpenCLDeviceType, 0);
+        }
+        // Fallback 使用 PyTorch 提供的 impl（可用于其它 device types）
+        const c10::impl::DeviceGuardImplInterface* impl =
+            c10::impl::getDeviceGuardImpl(device.type());
+        return impl->getDevice();
     }
-}
 
     // {"schema": "aten::empty(SymInt[] size, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None, MemoryFormat? memory_format=None) -> Tensor", "dispatch": "True", "default": "False"}
     torch::Tensor empty(IntArrayRef size, ::std::optional<at::ScalarType> dtype, ::std::optional<at::Layout> layout, ::std::optional<at::Device> device, ::std::optional<bool> pin_memory, ::std::optional<at::MemoryFormat> memory_format)
@@ -210,6 +213,90 @@ __attribute__((constructor)) static void ptdlprim_library_init() {
         return self;
     }
 
+    at::Tensor _to_copy(const Tensor & self, ::std::optional<at::ScalarType> dtype, ::std::optional<at::Layout> layout, ::std::optional<at::Device> device, ::std::optional<bool> pin_memory, bool non_blocking, ::std::optional<at::MemoryFormat> memory_format){
+        GUARD;
+
+        // 1) 构造 override options 并合并
+        c10::TensorOptions opts_override;
+        if (dtype.has_value()) opts_override = opts_override.dtype(*dtype);
+        if (layout.has_value()) opts_override = opts_override.layout(*layout);
+        if (device.has_value()) opts_override = opts_override.device(*device);
+        if (pin_memory.has_value()) opts_override = opts_override.pinned_memory(*pin_memory);
+
+        c10::TensorOptions options = self.options().merge_in(opts_override);
+
+        // 2) layout 不能改变（与 NPU 实现一致）
+        if (layout.has_value()) {
+            TORCH_CHECK(
+                self.layout() == layout.value(),
+                "to(options) doesn't support converting to a different layout, "
+                "but got self.layout being ",
+                self.layout(),
+                " and options.layout set as ",
+                layout.value());
+        }
+
+        // 3) 规范化 device index（若提供）
+        if (device.has_value()) {
+            options = options.device(ensure_has_index(*device));
+        }
+
+        // 4) dtype double on OCL fallback to float (consistent with to(dtype) behavior)
+        if (options.dtype() == at::ScalarType::Double && options.device().type() == OpenCLDeviceType) {
+            if (!CLContextManager::fp64(options.device().index())) {
+                TORCH_WARN("Device ocl:" + std::to_string(options.device().index()) + " does not support cl_khr_fp64, falling back to float");
+                options = options.dtype(at::ScalarType::Float);
+            }
+        }
+
+        // 5) requires_grad must not be set in options
+        TORCH_CHECK(
+            options.requires_grad_opt() == c10::nullopt,
+            "to(options) expects unset requires_grad flag, but got "
+            "options.requires_grad set as ",
+            options.requires_grad());
+
+        // 6) memory_format handling: determine effective memory_format
+        c10::MemoryFormat mf = memory_format.has_value()
+            ? *memory_format
+            : (self.device().type() == OpenCLDeviceType ? c10::MemoryFormat::Contiguous : c10::MemoryFormat::Preserve);
+
+        if (memory_format.has_value()) {
+            TORCH_CHECK(
+                mf == c10::MemoryFormat::Preserve || mf == c10::MemoryFormat::Contiguous,
+                "Only contiguous_format or preserve_format is supported");
+            // options already has memory_format? we'll set below when creating tensors
+        } else {
+            // options.memory_format will be applied later
+        }
+
+        // 7) pin_out behavior (non_blocking -> CPU pinned) similar to to_impl_dlprim
+        bool pin_out = non_blocking && (self.device().type() == OpenCLDeviceType) && options.device().is_cpu() &&
+                       (options.layout() == c10::kStrided);
+
+        // 8) If Preserve requested and tensor is non-overlapping and dense, use empty_strided to preserve strides
+        if (mf == c10::MemoryFormat::Preserve) {
+            if (self.is_non_overlapping_and_dense()) {
+                auto r = at::empty_strided(
+                    self.sizes(), self.strides(),
+                    options.memory_format(c10::nullopt).pinned_memory(pin_out));
+                r.copy_(self, non_blocking);
+                return r;
+            } else {
+                // fallback to suggested memory format
+                mf = self.suggest_memory_format();
+            }
+        }
+
+        // 9) default: allocate empty with chosen memory_format and copy
+        auto r = at::empty(
+            self.sizes(),
+            options.memory_format(mf).pinned_memory(pin_out),
+            c10::nullopt);
+        r.copy_(self, non_blocking);
+        return r;
+    }
+
 
     Tensor &fill_(Tensor &self, const c10::Scalar &value)
     {
@@ -388,6 +475,91 @@ __attribute__((constructor)) static void ptdlprim_library_init() {
         return self;
     }
 
+    Tensor & set_(Tensor & self, const Tensor & source, int64_t storage_offset, IntArrayRef size, IntArrayRef stride)
+    {
+
+        at::TensorImpl* self_impl  = self.unsafeGetTensorImpl();
+        at::TensorImpl* src_impl   = source.unsafeGetTensorImpl();
+
+        if (self_impl == src_impl) {
+            return self;
+        }
+
+        // ---- 2. 基本合法性检查（仿 NPU 做法）----
+        // 如果你有 checkSetStorage，可以启用：
+        // at::native::checkSetStorage(self, source.storage(), storage_offset, size, stride);
+
+        // ---- 3. 替换 storage（保持 dtype）----
+        // 与 NPU 的 set_storage_nd_npu 行为完全一致
+        self_impl->set_storage_keep_dtype(source.storage());
+
+        // ---- 4. 设置 storage offset ----
+        self_impl->set_storage_offset(storage_offset);
+
+        // ---- 5. 设置 sizes / strides ----
+        // 若 stride 为空（例如 { }），你可以决定是否自动 contiguous
+        if (stride.size() > 0) {
+            // 按指定 stride
+            self_impl->set_sizes_and_strides(size, stride);
+        } else {
+            // 默认 contiguous（与 NPU 等效行为）
+            self_impl->set_sizes_contiguous(size);
+        }
+
+        // ---- 6. backend-specific storage descriptor 同步 ----
+        // 如果你的 OpenCL 后端有类似 NPU 的 StorageDescHelper，请在此处调用：
+        // StorageDescHelper::CopyDesc(self, source);
+
+        // 如果还没有 descriptor helper，可以忽略这步，不影响基本功能。
+
+        return self;
+    }
+
+   // {"schema": "aten::set_(Tensor(a!) self) -> Tensor(a!)", "dispatch": "True", "default": "False"}
+    Tensor & set_(Tensor & self) {
+        GUARD;
+
+        // 保存 dtype（与 NPU 实现一致，后面断言不被改变）
+        caffe2::TypeMeta dtype = self.dtype();
+
+        // 使用 CLContextManager 分配 0 字节的 DataPtr（作为 backend storage）
+        // CLContextManager::allocate(device, nbytes) 返回 at::DataPtr
+        at::DataPtr data_ptr = CLContextManager::allocate(self.device(), /*n=*/0);
+
+        // 创建 StorageImpl：传入 nullptr 作为 allocator（你的 CLContextManager 无 get_allocator）
+        // storage size 表示以字节为单位，这里用 SymInt(0)
+        c10::intrusive_ptr<c10::StorageImpl> ocl_storage_impl =
+        c10::make_intrusive<c10::StorageImpl>(
+            c10::StorageImpl::use_byte_size_t(),
+            c10::SymInt(0),
+            std::move(data_ptr),
+            /*allocator=*/ static_cast<c10::Allocator*>(nullptr),
+            /*resizable=*/ true);
+
+        // 构造 c10::Storage
+        c10::Storage storage(ocl_storage_impl);
+
+        // 将 self 指向这个 storage（保持 dtype）
+        c10::intrusive_ptr<c10::TensorImpl> impl = self.getIntrusivePtr();
+        impl->set_storage_keep_dtype(storage);
+
+        // storage offset = 0
+        impl->set_storage_offset(0);
+
+        // 设置 sizes = {0}；stride 为空 -> 设为 contiguous
+        std::vector<int64_t> sizes = {0};
+        impl->set_sizes_contiguous(c10::ArrayRef<int64_t>(sizes.data(), sizes.size()));
+
+        // 如果你有 backend-specific descriptor helper，可在此初始化：
+        // e.g. StorageDescHelper::SetDesc(self);
+
+        // 确认 dtype 未被修改
+        TORCH_INTERNAL_ASSERT(dtype == self.dtype(), "set_(self) changed dtype unexpectedly");
+
+        return self;
+    }
+
+
     // {"schema": "aten::resize_(Tensor(a!) self, SymInt[] size, *, MemoryFormat? memory_format=None) -> Tensor(a!)", "dispatch": "True", "default": "False"}    
     const Tensor & resize_(const Tensor & self, at::IntArrayRef size, ::std::optional<at::MemoryFormat> memory_format)
     {
@@ -427,21 +599,7 @@ __attribute__((constructor)) static void ptdlprim_library_init() {
         return self;
     }
 
-    static inline c10::Device ensure_has_index(c10::Device device) {
-        // 对 OpenCL 后端，若没有 index，则默认回退到 ocl:0
-        if (device.is_cpu() || device.has_index()) {
-            return device;
-        }
-        // 如果 DeviceType 是自定义的 OpenCLDeviceType，无法保证 getDeviceGuardImpl 可用，
-        // 所以直接返回默认 OpenCL 设备(0)。
-        if (device.type() == OpenCLDeviceType) {
-            return c10::Device(OpenCLDeviceType, 0);
-        }
-        // Fallback 使用 PyTorch 提供的 impl（可用于其它 device types）
-        const c10::impl::DeviceGuardImplInterface* impl =
-            c10::impl::getDeviceGuardImpl(device.type());
-        return impl->getDevice();
-    }
+    
 
     // to_impl_dlprim: 统一实现 copy/create 的逻辑（类似 to_impl_npu）
     static inline at::Tensor to_impl_dlprim(
@@ -556,6 +714,15 @@ __attribute__((constructor)) static void ptdlprim_library_init() {
             opts = opts.memory_format(optional_memory_format.value());
         }
         return to_impl_dlprim(self, opts, non_blocking, copy);
+    }
+
+    bool _has_compatible_shallow_copy_type(const at::Tensor & self, const at::Tensor & from) {
+        c10::DispatchKeySet self_keyset = self.key_set();
+        c10::DispatchKeySet from_keyset = from.key_set();
+        auto is_dense = [](c10::DispatchKeySet ks) {
+            return ks.has(c10::DispatchKey::CPU) || ks.has(c10::DispatchKey::PrivateUse1);
+        };
+        return (self_keyset == from_keyset) || (is_dense(self_keyset) && is_dense(from_keyset));
     }
 
   }  /* namespace op_plugin */
