@@ -6,12 +6,16 @@ namespace op_plugin {
     at::Tensor & nll_loss_backward_out(const at::Tensor & grad_output, const at::Tensor & self, const at::Tensor & target, const c10::optional<at::Tensor> & weight, int64_t reduction, int64_t ignore_index, const at::Tensor & /*total_weight*/, at::Tensor & grad_input)
     {
         GUARD;
+
         TORCH_CHECK(!weight || weight->numel()==0,"Weight NLLLoss isn't supported");
         TORCH_CHECK(ignore_index <0,"Ignore index isn't supported");
+
         dlprim::Tensor dx=todp(grad_input);
-        at::Tensor target_c = target.contiguous(), grad_output_c = grad_output.contiguous();
+        at::Tensor target_c = target.contiguous();
+        at::Tensor grad_output_c = grad_output.contiguous();
         dlprim::Tensor lbl=todp(target_c);
         dlprim::Tensor dy=todp(grad_output_c);
+        
         bool reduce = false;
         float scale = 1;
         switch(reduction) {
