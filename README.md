@@ -20,7 +20,6 @@ pytorch_dlprim is tested on following devices:
 ```shell
 sudo apt update
 sudo apt install -y ocl-icd-opencl-dev opencl-headers
-sudo mkdir -p /usr/local/include/CL && sudo cp tools/opencl.hpp /usr/local/include/CL/
 sudo apt install -y libfmt-dev
 ```
 
