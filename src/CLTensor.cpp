@@ -63,7 +63,7 @@ namespace at_torch {
 
         std::int64_t size = round(orig_size);
         std::unique_ptr<CLMemAllocation> res;
-        
+
         auto p=allocation.find(size);
         if(reuse_oversized_chunks) {
             int times=0;
@@ -104,7 +104,7 @@ namespace at_torch {
             printf("free  : allocated: %'16ld  requested %'16ld peak-req %'16ld cached %'16ld\n",allocated_size,requested_size,peak_requested_size,cached_size);
         allocation[size].push_back(std::move(mem));
     }
-    
+
     void CLCache::clear()
     {
         std::unique_lock<std::mutex> g(lock);
@@ -147,7 +147,7 @@ namespace at_torch {
         int32_t _pid = 0;
         int32_t _tid = 0;
         int32_t device_index = 0;
-        int64_t end_ns  = 0; 
+        int64_t end_ns  = 0;
         int64_t start_ns = 0;
         int64_t during_ns = 0;
 
@@ -157,11 +157,11 @@ namespace at_torch {
                 /* get startTime(ns), endTime(ns) */
                 auto raw_start_ns = d->event.getProfilingInfo<CL_PROFILING_COMMAND_START>();
                 auto raw_end_ns  = d->event.getProfilingInfo<CL_PROFILING_COMMAND_END>();
-                
+
                 start_ns = transToRelativeTime((int64_t)raw_start_ns + data.gpu_to_cpu_offset_ns);
                 end_ns = transToRelativeTime((int64_t)raw_end_ns + data.gpu_to_cpu_offset_ns);
                 during_ns = end_ns - start_ns;
-                
+
                 /* get pid, tid */
                 _pid = device_index;
                 _tid = getThreadId();
@@ -189,7 +189,7 @@ namespace at_torch {
                   "ts": {}.{:03}, "dur": {}.{:03},
                   "args": {{
                     "device": {},
-                    "op name": "{}"                    
+                    "op name": "{}"
                   }}
                 }},)JSON",
                       d->name, _pid, _tid,
@@ -201,7 +201,7 @@ namespace at_torch {
             catch(cl::Error const &e) {
                 std::cout << "[ERROR] Failed for " << d->name << " " << e.what() << e.err() << std::endl;
                 continue;
-            }            
+            }
         }
 
         std::string device_str = "GPU "+ std::to_string(device_index);
@@ -226,15 +226,15 @@ namespace at_torch {
                 "sort_index": {}
               }}
             }})JSON",
-                start_ns/1000, start_ns%1000, 
-                start_ns/1000, start_ns%1000, 
+                start_ns/1000, start_ns%1000,
+                start_ns/1000, start_ns%1000,
                 device_str,
-                start_ns/1000, start_ns%1000,                
+                start_ns/1000, start_ns%1000,
                 getProcessId()+1);
         log << json_content;
         log << "]";
     }
-    
+
     void CLContextManager::start_profiling(int device)
     {
         auto &data = instance().data(device);
@@ -257,4 +257,3 @@ namespace at_torch {
         ExecGuard::set_profiling_context(&data.queue);
     }
 } // namespace
-

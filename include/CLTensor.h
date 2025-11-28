@@ -37,7 +37,7 @@ namespace at_torch {
     constexpr c10::DeviceType OpenCLDeviceType = c10::DeviceType::OPENCL;
 #else
     constexpr c10::DeviceType OpenCLDeviceType = c10::DeviceType::PrivateUse1;
-#endif    
+#endif
 
     using _trimonths = std::chrono::duration<_KINETO_GLIBCXX_CHRONO_INT64_T, std::ratio<7889238>>;
     template <class ClockT>
@@ -69,8 +69,8 @@ namespace at_torch {
     private:
         char const *name_;
     };
-    
-	#ifdef _MSC_VER 
+
+	#ifdef _MSC_VER
 	#  define GUARD ExecGuard debug_guard(__FUNCSIG__,__func__);
 	#else
     #  define GUARD ExecGuard debug_guard(__PRETTY_FUNCTION__,__func__);
@@ -122,10 +122,10 @@ namespace at_torch {
         void release(std::unique_ptr<CLMemAllocation> &&mem);
         void prepare(dlprim::Context &ctx);
     };
-    
+
 
     class CLContextManager {
-    public: 
+    public:
         static CLContextManager &instance()
         {
             static std::once_flag once;
@@ -227,7 +227,7 @@ namespace at_torch {
             getCommandQueue(index).finish();
             data[index]->cache.clear();
         }
-        
+
         static bool bad_fork()
         {
             instance();
@@ -273,7 +273,7 @@ namespace at_torch {
             poison_fork();
             char *no_cache=getenv("OPENCL_NO_MEM_CACHE");
             no_cache_ = no_cache && atoi(no_cache);
-                
+
             std::vector<cl::Platform> platforms;
             try {
                 cl::Platform::get(&platforms);
@@ -316,7 +316,7 @@ namespace at_torch {
             return res;
         }
 
-        
+
         std::vector<std::unique_ptr<DevData> > data_;
         bool no_cache_;
         static bool bad_fork_;

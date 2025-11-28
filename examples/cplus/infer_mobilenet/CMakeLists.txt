@@ -46,7 +46,7 @@ find_package(OpenCL REQUIRED)
 target_include_directories(infer_mobilenet PRIVATE ${OpenCL_INCLUDE_DIRS})
 target_link_libraries(infer_mobilenet ${OpenCL_LIBRARIES} pthread dl nccl
     cupti
-    cudart) 
+    cudart)
 
 # 设置 RPATH 方便运行时找到动态库
 set_target_properties(infer_mobilenet PROPERTIES

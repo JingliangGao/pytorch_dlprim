@@ -9,7 +9,7 @@ execute_process(
 )
 string(REGEX MATCH "Location: ([^\n\r]+)" _match "${TORCH_PIP_INFO}")
 set(TORCH_LOCATION "${CMAKE_MATCH_1}")
-set(CMAKE_PREFIX_PATH ${TORCH_LOCATION}/torch/share/cmake/Torch)   
+set(CMAKE_PREFIX_PATH ${TORCH_LOCATION}/torch/share/cmake/Torch)
 find_package(Torch REQUIRED)
 
 # Find fmt library
@@ -18,7 +18,7 @@ if(fmt_FOUND)
     message(STATUS "fmt library found!")
     get_target_property(FMT_INCLUDE_DIRS fmt::fmt INTERFACE_INCLUDE_DIRECTORIES)
     get_target_property(FMT_LIBS fmt::fmt LOCATION)
-   
+
 
     message(STATUS "fmt include dirs: ${FMT_INCLUDE_DIRS}")
     message(STATUS "fmt library location: ${FMT_LIBS}")
@@ -26,7 +26,7 @@ else()
     message(FATAL_ERROR "fmt library not found!")
 endif()
 
-# Find pybind11 
+# Find pybind11
 find_package(pybind11 REQUIRED)
 
 # Start codegen
@@ -97,7 +97,7 @@ else()
 	set_target_properties(libpt_ocl PROPERTIES
 		RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/pytorch_ocl/"
 		SUFFIX ".pyd"
-	) 
+	)
 endif()
 
 # Install Python bindings
@@ -105,7 +105,7 @@ foreach(PYNAME __init__.py)
     configure_file(${CMAKE_CURRENT_SOURCE_DIR}/python/pytorch_ocl/${PYNAME} "${CMAKE_BINARY_DIR}/pytorch_ocl/${PYNAME}" COPYONLY)
     install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/python/pytorch_ocl/${PYNAME} DESTINATION python/pytorch_ocl)
 endforeach()
-install(TARGETS libpt_ocl 
+install(TARGETS libpt_ocl
         LIBRARY DESTINATION python/pytorch_ocl
         RUNTIME DESTINATION python/pytorch_ocl
     )

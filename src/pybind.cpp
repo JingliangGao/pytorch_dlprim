@@ -15,8 +15,8 @@ namespace at_torch {
 
     using c10::Device;
     using c10::DeviceType;
-    
-    Device get_custom_device(int id) 
+
+    Device get_custom_device(int id)
     {
       return Device(OpenCLDeviceType, id);
     }

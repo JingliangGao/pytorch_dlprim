@@ -30,34 +30,34 @@ using c10::DeviceType;
 
 class OCLDevImpl : public c10::impl::DeviceGuardImplInterface {
 public:
-    OCLDevImpl() 
+    OCLDevImpl()
     {
-    } 
+    }
     virtual DeviceType type() const { return OpenCLDeviceType; }
     virtual Device exchangeDevice(Device d) const {
         Device prev = dt_;
         dt_ = d;
         return prev;
     }
-    virtual Device getDevice() const { 
-        return dt_; 
+    virtual Device getDevice() const {
+        return dt_;
     }
-    virtual void setDevice(Device d) const { 
-        dt_ = d; 
+    virtual void setDevice(Device d) const {
+        dt_ = d;
     }
-    virtual void uncheckedSetDevice(Device d) const noexcept  { 
-        dt_ = d; 
+    virtual void uncheckedSetDevice(Device d) const noexcept  {
+        dt_ = d;
     }
-    virtual c10::Stream getStream(Device d) const noexcept { 
+    virtual c10::Stream getStream(Device d) const noexcept {
         return c10::Stream(c10::Stream::UNSAFE,d,0);
     }
-    virtual c10::Stream getDefaultStream(Device d) const { 
-        return getStream(d); 
+    virtual c10::Stream getDefaultStream(Device d) const {
+        return getStream(d);
     }
-    virtual c10::Stream exchangeStream(Stream) const noexcept { 
-        return getStream(dt_); 
+    virtual c10::Stream exchangeStream(Stream) const noexcept {
+        return getStream(dt_);
     }
-    virtual DeviceIndex deviceCount() const noexcept { 
+    virtual DeviceIndex deviceCount() const noexcept {
         try {
             return CLContextManager::count();
         }
@@ -74,8 +74,8 @@ public:
     }
 private:
 
-    static thread_local Device dt_; 
-    static thread_local Stream s_; 
+    static thread_local Device dt_;
+    static thread_local Stream s_;
 } ocl_impl_instance;
 
 thread_local Device OCLDevImpl::dt_ = Device(OpenCLDeviceType,0);
@@ -133,4 +133,3 @@ HooksInterface _Reg::interface;
 c10::impl::DeviceGuardImplRegistrar ocl_impl_reg(OpenCLDeviceType,&ocl_impl_instance);
 
 } // namespace
-

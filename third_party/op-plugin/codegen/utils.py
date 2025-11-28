@@ -6,7 +6,6 @@ import warnings
 
 
 class PathManager:
-
     @classmethod
     def check_path_owner_consistent(cls, path: str):
         """
@@ -49,10 +48,12 @@ class PathManager:
         if os.path.exists(path):
             os.remove(path)
 
+
 def get_torchgen_dir():
     # get path of torchgen, then get tags.yaml and native_functions.yaml
     try:
         import torchgen
+
         return os.path.dirname(os.path.realpath(torchgen.__file__))
     except Exception:
         _, _, exc_traceback = sys.exc_info()

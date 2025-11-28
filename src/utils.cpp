@@ -40,7 +40,7 @@ namespace at_torch {
         cl::Buffer buf(p,true);
         return buf;
     }
-    
+
     dlprim::Tensor todp(torch::Tensor const &tt)
     {
         TORCH_CHECK(tt.device().type() == OpenCLDeviceType,"OpenCL device is required for tensor");
@@ -68,7 +68,7 @@ namespace at_torch {
         c10::Storage storage(c10::Storage::use_byte_size_t(),mem,CLContextManager::allocate(dev,mem));
 
         c10::DispatchKeySet ks = c10::DispatchKeySet{c10::DispatchKey::OpenCL, c10::DispatchKey::AutogradOpenCL};
-        
+
         c10::intrusive_ptr<c10::TensorImpl> impl=c10::make_intrusive<c10::TensorImpl>(
             std::move(storage),
             ks,
