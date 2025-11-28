@@ -39,7 +39,6 @@ python3 examples/python/train_mnist.py
 ```
 
 2. profile a mnist net
-'./profile_log' here is the directory to save data
 ```shell
-python3 examples/python/train_mnist.py --profile ./profile_log   
+python3 examples/python/train_mnist.py --profile ./profile_log  # './profile_log' is the directory to save data
 ```
