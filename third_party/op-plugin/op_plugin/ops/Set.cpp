@@ -3,7 +3,7 @@
 namespace at_torch {
 namespace op_plugin {
 
-    // {"schema": "aten::set_.source_Storage_storage_offset(at::Tensor(a!) self, Storage source, SymInt storage_offset, SymInt[] size, SymInt[] stride=[]) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+
     at::Tensor & set_(at::Tensor & self, Storage source, int64_t storage_offset, at::IntArrayRef size, at::IntArrayRef stride)
     {
         c10::intrusive_ptr<c10::TensorImpl> impl = self.getIntrusivePtr();
@@ -12,7 +12,7 @@ namespace op_plugin {
         return self;
     }
 
-    // {"schema": "aten::set_.source_Storage(at::Tensor(a!) self, Storage source) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+
     at::Tensor & set_(at::Tensor & self, Storage source)
     {
         c10::intrusive_ptr<c10::TensorImpl> impl = self.getIntrusivePtr();
@@ -66,7 +66,7 @@ namespace op_plugin {
         return self;
     }
 
-   // {"schema": "aten::set_(at::Tensor(a!) self) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+
     at::Tensor & set_(at::Tensor & self) {
         GUARD;
 

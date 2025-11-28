@@ -3,7 +3,7 @@
 namespace at_torch {
 namespace op_plugin {
 
-    // {"schema": "aten::resize_(at::Tensor(a!) self, SymInt[] size, *, MemoryFormat? memory_format=None) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
+
     const at::Tensor & resize_(const at::Tensor & self, at::IntArrayRef size, ::std::optional<at::MemoryFormat> memory_format)
     {
         if(memory_format) {
