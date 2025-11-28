@@ -14,5 +14,14 @@ namespace op_plugin {
 
     }
 
+
+    at::Tensor _reshape_alias(const at::Tensor & self, at::IntArrayRef size, at::IntArrayRef stride)
+    {
+        GUARD;
+        at::Tensor data = at::alias(self);
+        data.getIntrusivePtr()->set_sizes_and_strides(size,stride);
+        return data;
+    }
+
   }  /* namespace op_plugin */
 }  /* namespace at_torch */
