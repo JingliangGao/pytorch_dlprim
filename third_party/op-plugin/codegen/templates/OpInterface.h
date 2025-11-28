@@ -1,5 +1,6 @@
 #include "CLTensor.h"
 #include "utils.h"
+#include "OpUtils.h"
 #include <ATen/ATen.h>
 #include <ATen/native/CPUFallback.h>
 #include <ATen/InferSize.h>
