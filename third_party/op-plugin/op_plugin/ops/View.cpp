@@ -23,7 +23,7 @@ namespace op_plugin {
         data.getIntrusivePtr()->set_sizes_and_strides(inferred_size,stride_value);
         return data;
     }
-    
+
 
     }  /* namespace op_plugin */
 }  /* namespace at_torch */

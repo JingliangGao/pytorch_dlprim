@@ -9,7 +9,7 @@ namespace op_plugin {
         GUARD;
         at::Tensor self_c = self.contiguous();
         at::Tensor out_c = out.contiguous();
-        
+
         dlprim::Tensor x0=todp(self_c);
         dlprim::Tensor y0=todp(out_c);
         double value=0;
@@ -25,10 +25,10 @@ namespace op_plugin {
                                         "y0 = x0/x1;",
                                         getExecutionContext(self));
         }
-        
+
         if (!out.is_contiguous())
             out.copy_(out_c);
-        
+
         sync_if_needed(self.device());
         return out;
     }

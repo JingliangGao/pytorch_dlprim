@@ -11,8 +11,8 @@ namespace op_plugin {
             N *= v;
         }
 
-        bool weight_present = weight && weight->numel()>0; 
-        bool bias_present = bias && bias->numel()>0; 
+        bool weight_present = weight && weight->numel()>0;
+        bool bias_present = bias && bias->numel()>0;
 
         dlprim::ExecutionContext q=getExecutionContext(input);
         dlprim::Context ctx(q);
@@ -41,7 +41,7 @@ namespace op_plugin {
 
         auto bn = dlprim::core::BatchNormFwdBwd::create(ctx,X.shape(),X.dtype());
         size_t ws_size = bn->workspace();
-        
+
         DataPtr tmp;
         dlprim::Tensor ws = make_workspace(tmp,ws_size,input.device());
 

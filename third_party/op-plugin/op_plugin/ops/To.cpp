@@ -8,7 +8,7 @@ namespace op_plugin {
         const at::Tensor& self,
         const c10::TensorOptions& options,
         bool non_blocking,
-        bool copy) 
+        bool copy)
     {
         GUARD;
 
@@ -131,7 +131,7 @@ namespace op_plugin {
         return r;
     }
 
-    
+
     at::Tensor to(
         const at::Tensor& self,
         c10::Device device,

@@ -19,14 +19,14 @@ namespace op_plugin {
             dlprim::core::pointwise_operation({X},{Y},{max->to<double>()},"y0 = min(w0,x0);",q);
         else
             dlprim::core::pointwise_operation({X},{Y},{},"y0 = x0;",q);
-        
+
         if (!out.is_contiguous())
             out.copy_(out_c);
-        
+
         sync_if_needed(self.device());
         return out;
     }
-    
+
 
     at::Tensor & clamp_min_out(const at::Tensor & self, const Scalar & min, at::Tensor & out)
     {
@@ -35,16 +35,16 @@ namespace op_plugin {
         dlprim::Tensor Y = todp(out_c);
         dlprim::Tensor X = todp(self_c);
         auto q = getExecutionContext(self);
-        
+
         dlprim::core::pointwise_operation({X},{Y},{min.to<double>()},"y0 = max(w0,x0);",q);
-        
+
         if (!out.is_contiguous())
             out.copy_(out_c);
-        
+
         sync_if_needed(self.device());
         return out;
     }
-    
+
 
     }  /* namespace op_plugin */
 }  /* namespace at_torch */

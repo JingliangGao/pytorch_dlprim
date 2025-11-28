@@ -25,7 +25,7 @@ namespace op_plugin {
                     y0 = (maxd - s * (x1 / ((dtype)(1) + x1))) * x2;
                     )xxx",
                     getExecutionContext(self));
-        
+
         if(!grad_input.is_contiguous())
             grad_input.copy_(grad_input_c);;
 

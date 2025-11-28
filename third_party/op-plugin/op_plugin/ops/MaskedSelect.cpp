@@ -30,7 +30,7 @@ namespace op_plugin {
             return 0;
         }
     }
-    
+
     // {"schema": "aten::masked_select(at::Tensor self, at::Tensor mask) -> at::Tensor", "dispatch": "True", "default": "False"}
     at::Tensor masked_select(const at::Tensor & self, const at::Tensor & mask)
     {

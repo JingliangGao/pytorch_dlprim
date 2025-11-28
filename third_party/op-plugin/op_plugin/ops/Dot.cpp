@@ -3,13 +3,13 @@
 namespace at_torch {
 namespace op_plugin {
 
-    
+
     at::Tensor dot(const at::Tensor & self, const at::Tensor & tensor)
     {
         GUARD;
         at::Tensor self_c = self.contiguous();
         at::Tensor tensor_c = tensor.contiguous();
-        
+
         dlprim::Tensor x0=todp(self_c);
         dlprim::Tensor x1=todp(tensor_c);
         at::Tensor result = new_tensor_as(dlprim::Shape(),self_c);
@@ -29,7 +29,7 @@ namespace op_plugin {
         sync_if_needed(self.device());
         return result;
     }
-    
+
 
     }  /* namespace op_plugin */
 }  /* namespace at_torch */

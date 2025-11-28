@@ -9,7 +9,7 @@ namespace op_plugin {
         GUARD;
         at::Tensor self_c = self.contiguous();
         at::Tensor out_c = out.contiguous();
-        
+
         dlprim::Tensor X = todp(self_c);
         dlprim::Tensor Yval = todp(out_c);
         std::vector<int64_t> dims;
@@ -38,7 +38,7 @@ namespace op_plugin {
                     );
         WSGuard ws_guard(op->workspace(),self.device());
         op->enqueue({X},{Yval},ws_guard.ws,{},{1,1},{0,0},q);
-        
+
         if (!out.is_contiguous())
             out.copy_(out_c);
 
@@ -67,7 +67,7 @@ namespace op_plugin {
                     );
         WSGuard ws_guard(op->workspace(),self.device());
         op->enqueue({X},{Y},ws_guard.ws,{},{1},{0},q);
-        
+
         if (!self.is_contiguous())
             self.copy_(self_c);
 
@@ -84,7 +84,7 @@ namespace op_plugin {
         at::Tensor other_c = other.contiguous();
 
         std::string op_builder = "y0 = max(left,right); ";
-        
+
         dlprim::Tensor y(todp(out_c));
         double value;
         if(is_cpu_scalar(other,value)) {
@@ -109,13 +109,13 @@ namespace op_plugin {
                     getExecutionContext(self));
             sync_if_needed(self.device());
         }
-        
+
         if (!out.is_contiguous())
             out.copy_(out_c);
 
         return out;
     }
-    
+
 
     }  /* namespace op_plugin */
 }  /* namespace at_torch */

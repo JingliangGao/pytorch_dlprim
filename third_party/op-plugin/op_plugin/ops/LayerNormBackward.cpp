@@ -23,7 +23,7 @@ namespace op_plugin {
         dlprim::Shape norm_shape = dlprim::Shape::from_range(ns.begin(),ns.end());
 
 
-        bool weight_present = weight && weight->numel()>0; 
+        bool weight_present = weight && weight->numel()>0;
         bool bias_present = bias && bias->numel() > 0;
 
         dlprim::ExecutionContext q=getExecutionContext(input);
@@ -38,9 +38,9 @@ namespace op_plugin {
         auto bn_shape = dlprim::Shape(1,B,N);
         X.reshape(bn_shape);
         dY.reshape(bn_shape);
-        
+
         dlprim::Tensor W;
-        
+
         if(weight_present) {
             W = todp(*weight);
             W.reshape(dlprim::Shape(N));
@@ -52,7 +52,7 @@ namespace op_plugin {
         bool bwd_gamma=output_mask[1] && weight_present;
         bool bwd_beta=output_mask[2] && bias_present;
 
-        
+
         dlprim::Tensor dX,dG,dB;
         if(bwd_gamma)  {
             gamma_diff = new_tensor_as(norm_shape,input);
@@ -92,7 +92,7 @@ namespace op_plugin {
             dX.reshape(bn_shape);
             auto bn = dlprim::core::BatchNormFwdBwd::create(ctx,bn_shape,X.dtype());
             size_t ws_size = bn->workspace();
-            
+
             DataPtr tmp;
             dlprim::Tensor ws = make_workspace(tmp,ws_size,input.device());
 
@@ -104,7 +104,7 @@ namespace op_plugin {
                 auto pt_dYW_diff = new_tensor_as(dY.shape(),input);
                 dYW_diff = todp(pt_dYW_diff);
                 dlprim::core::pointwise_operation_broadcast({dY,W},{dYW_diff},{},{},
-                        "y0 = x0 * x1;", 
+                        "y0 = x0 * x1;",
                         q);
             }
 

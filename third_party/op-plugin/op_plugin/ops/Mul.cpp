@@ -3,14 +3,14 @@
 namespace at_torch {
 namespace op_plugin {
 
-  
+
     at::Tensor & mul_out(const at::Tensor & self, const at::Tensor & other, at::Tensor & out)
     {
         GUARD;
         at::Tensor self_c  = self.contiguous();
         at::Tensor out_c = out.contiguous();
         at::Tensor other_c = other.contiguous();
-        
+
 
         std::string op_builder = "y0 = left * right;";
 
@@ -38,7 +38,7 @@ namespace op_plugin {
                     getExecutionContext(self));
             sync_if_needed(self.device());
         }
-        
+
         if (!out.is_contiguous())
             out.copy_(out_c);
 
@@ -54,10 +54,10 @@ namespace op_plugin {
         dlprim::core::pointwise_operation({x0},{x0},{scale},
                                           "y0 = x0*w0;",
                                           getExecutionContext(self));
-        
+
         if (!self.is_contiguous())
             self.copy_(self_c);
-        
+
         sync_if_needed(self.device());
         return self;
     }

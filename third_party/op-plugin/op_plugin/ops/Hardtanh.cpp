@@ -17,7 +17,7 @@ namespace op_plugin {
         return out;
     }
 
- 
+
     at::Tensor & hardtanh_(at::Tensor & self, const Scalar & min_val, const Scalar & max_val)
     {
         GUARD;

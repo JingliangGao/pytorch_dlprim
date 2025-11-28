@@ -19,7 +19,7 @@ namespace op_plugin {
             op_builder = "y0 = (left | right);";
         }
 
-        
+
         dlprim::Tensor y(todp(out_c));
         double value;
         if(is_cpu_scalar(other,value)) {
@@ -44,12 +44,12 @@ namespace op_plugin {
                     getExecutionContext(self));
             sync_if_needed(self.device());
         }
-        
+
         if (!out.is_contiguous())
             out.copy_(out_c);
 
         return out;
-    
+
     }
 
     }  /* namespace op_plugin */

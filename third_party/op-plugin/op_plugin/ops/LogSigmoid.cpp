@@ -17,7 +17,7 @@ namespace op_plugin {
                     y0 = min((dtype)(0),x0) - log1p(y1);
                     )xxx",
                     getExecutionContext(self));
-        
+
         if(!output.is_contiguous())
             output.copy_(output_c);
 
@@ -29,13 +29,13 @@ namespace op_plugin {
 
     }
 
-    
+
     ::std::tuple<at::Tensor,at::Tensor> log_sigmoid_forward(const at::Tensor & self)
     {
         GUARD;
         at::Tensor out = at::empty_like(self);
         at::Tensor buffer = at::empty_like(self);
-        
+
         log_sigmoid_forward_out(self,out,buffer);
         return ::std::tuple<at::Tensor,at::Tensor>(out,buffer);
     }

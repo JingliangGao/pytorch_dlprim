@@ -6,8 +6,8 @@ namespace op_plugin {
     ::std::tuple<at::Tensor,at::Tensor,at::Tensor> native_batch_norm(const at::Tensor & input, const c10::optional<at::Tensor> & weight, const c10::optional<at::Tensor> & bias, const c10::optional<at::Tensor> & running_mean, const c10::optional<at::Tensor> & running_var, bool training, double momentum, double eps)
     {
         GUARD;
-        bool weight_present = weight && weight->numel()>0; 
-        bool bias_present = bias && bias->numel()>0; 
+        bool weight_present = weight && weight->numel()>0;
+        bool bias_present = bias && bias->numel()>0;
         bool mean_present = running_mean && running_mean->numel() > 0;
         bool var_present = running_var && running_var->numel() > 0;
         TORCH_CHECK(weight_present == bias_present,"Can have affince or not affine but not partial")
@@ -29,7 +29,7 @@ namespace op_plugin {
         dlprim::Tensor var  = todp(*running_var);
         at::Tensor calc_mean_pt,calc_var_pt;
         dlprim::Tensor calc_mean,calc_var;
-        
+
         if(training) {
             calc_mean_pt = new_tensor_as(mean.shape(),*running_mean);
             calc_mean = todp(calc_mean_pt);
@@ -39,7 +39,7 @@ namespace op_plugin {
 
         auto bn = dlprim::core::BatchNormFwdBwd::create(ctx,X.shape(),X.dtype());
         size_t ws_size = bn->workspace();
-        
+
         DataPtr tmp;
         dlprim::Tensor ws = make_workspace(tmp,ws_size,input.device());
 

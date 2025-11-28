@@ -3,7 +3,7 @@
 namespace at_torch {
 namespace op_plugin {
 
-    
+
     at::Tensor & avg_pool2d_out(const at::Tensor & self, IntArrayRef kernel_size, IntArrayRef stride, IntArrayRef padding, bool /*ceil_mode*/, bool count_include_pad, c10::optional<int64_t> divisor_override, at::Tensor & out)
     {
         GUARD;
@@ -14,7 +14,7 @@ namespace op_plugin {
         int strd[2];
         if(stride.empty()) {
             strd[0]=ker[0];
-            strd[1]=ker[1]; 
+            strd[1]=ker[1];
         }
         else {
             strd[0]=stride[0];
@@ -25,13 +25,13 @@ namespace op_plugin {
         dlprim::Tensor Y=todp(out);
         dlprim::ExecutionContext q(getExecutionContext(self));
         dlprim::Context ctx(q);
-        
+
         auto pool = dlprim::core::Pooling2DForward::create_avg_pooling(
                         ctx,
                         ker,pad,strd,
                         count_include_pad,todp(self.dtype())
-                    );                  
-        pool->enqueue(X,Y,q);    
+                    );
+        pool->enqueue(X,Y,q);
         sync_if_needed(self.device());
         return out;
     }

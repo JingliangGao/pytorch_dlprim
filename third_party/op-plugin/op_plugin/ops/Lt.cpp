@@ -4,7 +4,7 @@ namespace at_torch {
 namespace op_plugin {
 
 
-    at::Tensor & lt_out(const at::Tensor & self, const at::Tensor & other, at::Tensor & out)       
+    at::Tensor & lt_out(const at::Tensor & self, const at::Tensor & other, at::Tensor & out)
     {
         GUARD;
         at::Tensor self_c  = self.contiguous();
@@ -12,7 +12,7 @@ namespace op_plugin {
         at::Tensor other_c = other.contiguous();
 
         std::string op_builder = "y0 = (left < right);";
-        
+
         dlprim::Tensor y(todp(out_c));
         double value;
         if(is_cpu_scalar(other,value)) {
@@ -37,7 +37,7 @@ namespace op_plugin {
                     getExecutionContext(self));
             sync_if_needed(self.device());
         }
-        
+
         if (!out.is_contiguous())
             out.copy_(out_c);
 
@@ -50,17 +50,17 @@ namespace op_plugin {
         GUARD;
         at::Tensor self_c = self.contiguous();
         at::Tensor out_c = out.contiguous();
-        
+
         dlprim::Tensor x0=todp(self_c);
         dlprim::Tensor y0=todp(out_c);
         float w0 = other.toDouble();
         dlprim::core::pointwise_operation_broadcast({x0},{y0},{w0},{dlprim::float_data},
                                       "y0 = (x0 < w0) ? 1 : 0;" ,
                                       getExecutionContext(self));
-        
+
         if (!out.is_contiguous())
             out.copy_(out_c);
-        
+
         sync_if_needed(self.device());
         return out;
     }

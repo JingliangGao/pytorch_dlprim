@@ -52,7 +52,7 @@ namespace {
             std::swap(lda,ldb);
             std::swap(At,Bt);
         }
-        
+
         int M  = A.sizes()[0+bmm];
         int Ka = A.sizes()[1+bmm];
         int N  = B.sizes()[1+bmm];
@@ -62,7 +62,7 @@ namespace {
         int K = Ka;
 
         TORCH_CHECK(M==Mc && N==Nc && Ka == Kb,"Invalid matrix sizes "
-                    "A(" + std::to_string(M) + ","+std::to_string(Ka)+")" + (At?".T":"  ") + 
+                    "A(" + std::to_string(M) + ","+std::to_string(Ka)+")" + (At?".T":"  ") +
                     "*B(" + std::to_string(Kb) + "," + std::to_string(N) +")=" + (Bt?".T":"  ") +
                     "C("+std::to_string(Mc) + ","+std::to_string(Nc)+")");
 
@@ -74,7 +74,7 @@ namespace {
 
         dlprim::ExecutionContext q(getExecutionContext(self));
         dlprim::Context ctx(q);
-        
+
         cl::Buffer Abuf = buffer_from_tensor(A);
         int64_t    Aoff = A.storage_offset();
         cl::Buffer Bbuf = buffer_from_tensor(B);
@@ -108,7 +108,7 @@ namespace {
         sync_if_needed(self.device());
         return out;
     }
-    
+
 }
 
     at::Tensor & bmm_out(const at::Tensor & self, const at::Tensor & mat2, at::Tensor & out)

@@ -21,7 +21,7 @@ namespace op_plugin {
         char const *eq;
         // 1.128379167095512558561 = 2/ sqrt(pi)
         // 0.7071067811865475 = 1/sqrt(2)
-        
+
         if(approximate == "tanh")
             eq = R"xxx(
                 dtype alpha = 1.128379167095512558561f * 0.7071067811865475f;
@@ -31,12 +31,12 @@ namespace op_plugin {
                 y0 = 0.5f * x1 * fma(
                     fma(-x0,Y * Y, x0),
                     fma(beta,x0*x0,alpha),
-                    1 + Y                  
+                    1 + Y
                 );
             )xxx";
         else
             eq = R"xxx(
-                dtype alpha = 1.128379167095512558561f * 0.7071067811865475f * 0.5f; 
+                dtype alpha = 1.128379167095512558561f * 0.7071067811865475f * 0.5f;
                 dtype cdf = 0.5f * (1.0f + erf(x0 * 0.7071067811865475f));
                 y0 = x1 * fma(
                     alpha * x0,
@@ -45,7 +45,7 @@ namespace op_plugin {
             )xxx";
 
         dlprim::core::pointwise_operation({X,dY},{dX},{},eq,q);
-        
+
         if (!grad_input.is_contiguous())
             grad_input.copy_(grad_input_c);
 

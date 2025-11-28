@@ -27,7 +27,7 @@ namespace {
         GUARD;
         return interpolate_2d_out_internal(self,output_size,scales_h,scales_w,out,dlprim::InterpolateType::nearest);
     }
-    
+
 
     }  /* namespace op_plugin */
 }  /* namespace at_torch */

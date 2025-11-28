@@ -6,7 +6,7 @@ namespace op_plugin {
 namespace {
     at::Tensor& cat_internal(const ITensorListRef& tensors, int64_t dim, at::Tensor& out, bool reuse)
     {
-        GUARD; 
+        GUARD;
 
         std::vector<dlprim::Tensor> list;
         std::vector<at::Tensor> list_c;
@@ -101,7 +101,7 @@ namespace {
         TORCH_CHECK(tensors.size() > 0, "cat inputs should not be empty." );
         return at::cat_out(result, tensors, dimname_to_position(tensors[0], dim));
     }
-       
+
     at::Tensor _cat(TensorList tensors, int64_t dim)
     {
         GUARD;
@@ -109,7 +109,7 @@ namespace {
         cat_internal(tensors,dim,out,false);
         return out;
     }
-    
+
 
     }  /* namespace op_plugin */
 }  /* namespace at_torch */

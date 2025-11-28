@@ -4,7 +4,7 @@ namespace at_torch {
 namespace op_plugin {
 
 
-    std::tuple<at::Tensor, at::Tensor, at::Tensor> _transform_bias_rescale_qkv(const at::Tensor& qkv,const at::Tensor& qkv_bias,const int64_t num_head) 
+    std::tuple<at::Tensor, at::Tensor, at::Tensor> _transform_bias_rescale_qkv(const at::Tensor& qkv,const at::Tensor& qkv_bias,const int64_t num_head)
     {
         GUARD;
         auto qkv_ = qkv.is_nested()
@@ -17,7 +17,7 @@ namespace op_plugin {
         TORCH_CHECK(D % num_head == 0);
         TORCH_CHECK(_3D % 3 == 0);
         const auto dim_per_head = D / num_head;
-        
+
 
         const auto qkv_contig = qkv_->expect_contiguous();
         const auto qkv_bias_contig = qkv_bias.expect_contiguous();
@@ -34,7 +34,7 @@ namespace op_plugin {
         /// {1,2}  -> B,3,T,num_head,dim_per_head
         //  {2,3}  -> B,3,num_head,T,dim_per_head
         //  {0,1} ->  3,B,num_head,T,dim_per_head}
-        
+
         dlprim::Tensor dp_qkv = todp(*qkv_contig);
         dlprim::Tensor dp_bias = todp(*qkv_bias_contig);
         dlprim::Tensor dp_out = todp(q_k_v_same_order);

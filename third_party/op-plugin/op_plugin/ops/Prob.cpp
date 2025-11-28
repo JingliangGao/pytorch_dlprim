@@ -10,7 +10,7 @@ namespace op_plugin {
 
         at::Tensor self_c = self.contiguous();
         at::Tensor out_c = out.contiguous();
-        
+
         dlprim::Tensor X = todp(self_c);
         auto r = squeeze_dim(X.shape(), dims, keepdim);
         dlprim::Tensor Y = todp(out_c);
@@ -32,7 +32,7 @@ namespace op_plugin {
 
         WSGuard wsg(op->workspace(),self.device());
         op->enqueue({X},{Y},wsg.ws,{},{scale},{0},q);
-        
+
         if (!out.is_contiguous())
             out.copy_(out_c);
 

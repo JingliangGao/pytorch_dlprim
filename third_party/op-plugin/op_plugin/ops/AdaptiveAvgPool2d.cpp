@@ -3,7 +3,7 @@
 namespace at_torch {
 namespace op_plugin {
 
-    at::Tensor _adaptive_avg_pool2d(const at::Tensor & self, IntArrayRef output_size) 
+    at::Tensor _adaptive_avg_pool2d(const at::Tensor & self, IntArrayRef output_size)
     {
         GUARD;
         at::Tensor self_c = self.contiguous();

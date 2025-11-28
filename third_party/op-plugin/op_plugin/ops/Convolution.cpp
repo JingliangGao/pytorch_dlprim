@@ -27,7 +27,7 @@ namespace {
             cfg_base.groups = groups;
         }
         if(!transposed) {
-            return dlprim::core::Conv2DSettings(cfg_base,X.shape(),X.dtype()); 
+            return dlprim::core::Conv2DSettings(cfg_base,X.shape(),X.dtype());
         }
         else {
             int op[2] = {int(output_padding[0]),int(output_padding[1])};

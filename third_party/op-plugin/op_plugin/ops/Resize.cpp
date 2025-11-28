@@ -3,7 +3,7 @@
 namespace at_torch {
 namespace op_plugin {
 
-    // {"schema": "aten::resize_(at::Tensor(a!) self, SymInt[] size, *, MemoryFormat? memory_format=None) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}    
+    // {"schema": "aten::resize_(at::Tensor(a!) self, SymInt[] size, *, MemoryFormat? memory_format=None) -> at::Tensor(a!)", "dispatch": "True", "default": "False"}
     const at::Tensor & resize_(const at::Tensor & self, at::IntArrayRef size, ::std::optional<at::MemoryFormat> memory_format)
     {
         if(memory_format) {
@@ -25,7 +25,7 @@ namespace op_plugin {
 
         dlprim::DataType dt = todp(self.dtype());
         new_size*=dlprim::size_of_data_type(dt);
-        
+
         if(new_size >= storage_size && new_size > 0) {
             at::DataPtr new_mem = CLContextManager::allocate(self.device(),new_size);
             if(storage_size > 0) {
@@ -33,7 +33,7 @@ namespace op_plugin {
                 cl::Buffer src((cl_mem)data.get(),true);
                 auto q = getExecutionContext(self);
                 q.queue().enqueueCopyBuffer(src,dst,0,0,storage_size,q.events(),q.event("copy_buffer"));
-            } 
+            }
             data = std::move(new_mem);
             storage.set_nbytes(new_size);
             sync_if_needed(self.device());

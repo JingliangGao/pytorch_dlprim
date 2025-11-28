@@ -15,7 +15,7 @@ namespace op_plugin {
         dlprim::Tensor dloss = todp(grad_output_c);
         double scale = 1;
         if(reduction == 1) // mean
-            scale = 1.0/x.shape().total_size(); 
+            scale = 1.0/x.shape().total_size();
         dlprim::Tensor dx = todp(grad_input);
 
         // -w (y - x) / (x - x^2)

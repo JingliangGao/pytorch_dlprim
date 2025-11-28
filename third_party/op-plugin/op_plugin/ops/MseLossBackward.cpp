@@ -3,7 +3,7 @@
 namespace at_torch {
 namespace op_plugin {
 
-    
+
     at::Tensor mse_loss_backward(const at::Tensor & grad_output, const at::Tensor & self, const at::Tensor & target, int64_t reduction)
     {
         GUARD;
@@ -25,5 +25,3 @@ namespace op_plugin {
 
 }  /* namespace op_plugin */
 }  /* namespace at_torch */
-
-

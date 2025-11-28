@@ -3,13 +3,13 @@
 namespace at_torch {
 namespace op_plugin {
 
-    
+
     at::Tensor & argmax_out(const at::Tensor & self, c10::optional<int64_t> dim, bool keepdim, at::Tensor & out)
     {
         GUARD;
         at::Tensor self_c = self.contiguous();
         at::Tensor out_c = out.contiguous();
-        
+
         dlprim::Tensor X = todp(self_c);
         dlprim::Tensor Yind = todp(out_c);
         std::vector<int64_t> dims;
@@ -40,21 +40,21 @@ namespace op_plugin {
                     "reduce_y0 = " + min_val + "; reduce_y1 = -1;",
                     R"xxx(
                         if(y0 > reduce_y0) {
-                            reduce_y0 = y0; 
-                            reduce_y1 = y1; 
+                            reduce_y0 = y0;
+                            reduce_y1 = y1;
                         }
                     )xxx"
                     );
         WSGuard ws_guard(op->workspace(),self.device());
         op->enqueue({X},{Yval,Yind},ws_guard.ws,{},{1,1},{0,0},q);
-        
+
         if (!out.is_contiguous())
             out.copy_(out_c);
 
         sync_if_needed(self.device());
         return out;
     }
-    
+
 
     }  /* namespace op_plugin */
 }  /* namespace at_torch */

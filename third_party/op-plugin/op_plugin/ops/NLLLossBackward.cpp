@@ -15,7 +15,7 @@ namespace op_plugin {
         at::Tensor grad_output_c = grad_output.contiguous();
         dlprim::Tensor lbl=todp(target_c);
         dlprim::Tensor dy=todp(grad_output_c);
-        
+
         bool reduce = false;
         float scale = 1;
         switch(reduction) {

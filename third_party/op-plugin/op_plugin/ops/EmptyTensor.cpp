@@ -12,7 +12,7 @@ namespace op_plugin {
         //TORCH_CHECK(!memory_format || *memory_format == MemoryFormat::Contiguous,"Contigonous format expected");
         // }
         c10::Device dev = device ? *device : Device(OpenCLDeviceType,0);
-        c10::ScalarType st = dtype ? *dtype : c10::kFloat; 
+        c10::ScalarType st = dtype ? *dtype : c10::kFloat;
         if(st == c10::kDouble && !CLContextManager::fp64(dev.index())) {
             st = c10::kFloat;
             TORCH_WARN("This device ocl:" + std::to_string(dev.index()) + " does not support cl_khr_fp64, falling back to float");
@@ -27,7 +27,7 @@ namespace op_plugin {
         ::std::optional<at::ScalarType> dtype,
         ::std::optional<at::Layout> layout,
         ::std::optional<at::Device> device,
-        ::std::optional<bool> pin_memory) 
+        ::std::optional<bool> pin_memory)
     {
         GUARD;
         at::Tensor r = empty(size,dtype,layout,device,pin_memory,c10::nullopt);
@@ -35,7 +35,7 @@ namespace op_plugin {
         data.getIntrusivePtr()->set_sizes_and_strides(size,stride);
         return data;
     }
-    
+
 
     }  /* namespace op_plugin */
 }  /* namespace at_torch */

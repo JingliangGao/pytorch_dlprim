@@ -8,13 +8,13 @@ namespace op_plugin {
         GUARD;
         at::Tensor self_c = self.contiguous();
         at::Tensor out_c = out.contiguous();
-        
+
         dlprim::Tensor x(todp(self_c));
         dlprim::Tensor y(todp(out_c));
         dlprim::core::pointwise_operation_broadcast({x},{y},{other.to<double>()},{x.dtype()},
                     "y0 = x0 == w0;",
                     getExecutionContext(self));
-        
+
         if (!out.is_contiguous())
             out.copy_(out_c);
 
@@ -22,7 +22,7 @@ namespace op_plugin {
         return out;
     }
 
-    at::Tensor & eq_out(const at::Tensor & self, const at::Tensor & other, at::Tensor & out)          
+    at::Tensor & eq_out(const at::Tensor & self, const at::Tensor & other, at::Tensor & out)
     {
         GUARD;
         at::Tensor self_c  = self.contiguous();
@@ -30,7 +30,7 @@ namespace op_plugin {
         at::Tensor other_c = other.contiguous();
 
         std::string op_builder = "y0 = (left == right);";
-        
+
         dlprim::Tensor y(todp(out_c));
         double value;
         if(is_cpu_scalar(other,value)) {
@@ -55,7 +55,7 @@ namespace op_plugin {
                     getExecutionContext(self));
             sync_if_needed(self.device());
         }
-        
+
         if (!out.is_contiguous())
             out.copy_(out_c);
 

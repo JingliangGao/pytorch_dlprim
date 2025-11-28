@@ -22,7 +22,7 @@ namespace {
     }
 }
 
-   
+
     at::Tensor & _upsample_nearest_exact2d_backward_out(const at::Tensor & grad_output, at::IntArrayRef output_size, at::IntArrayRef input_size, ::std::optional<double> scales_h, ::std::optional<double> scales_w, at::Tensor & grad_input)
     {
         GUARD;

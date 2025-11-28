@@ -27,7 +27,7 @@ namespace {
             cfg_base.groups = groups;
         }
         if(!transposed) {
-            return dlprim::core::Conv2DSettings(cfg_base,X.shape(),X.dtype()); 
+            return dlprim::core::Conv2DSettings(cfg_base,X.shape(),X.dtype());
         }
         else {
             int op[2] = {int(output_padding[0]),int(output_padding[1])};
@@ -72,7 +72,7 @@ namespace {
 
         if(output_mask[0]) {
             if(!transposed) {
-                bwd_data = std::move(dlprim::core::Conv2DBackwardData::create(ctx,cfg)); 
+                bwd_data = std::move(dlprim::core::Conv2DBackwardData::create(ctx,cfg));
                 ws_size = std::max(ws_size,bwd_data->workspace());
             }
             else {
@@ -81,7 +81,7 @@ namespace {
             }
         }
         if(output_mask[1]) {
-            bwd_filter = std::move(dlprim::core::Conv2DBackwardFilter::create(ctx,cfg)); 
+            bwd_filter = std::move(dlprim::core::Conv2DBackwardFilter::create(ctx,cfg));
             ws_size = std::max(ws_size,bwd_filter->workspace());
         }
         if(output_mask[2]) {
@@ -96,7 +96,7 @@ namespace {
             dlprim::Tensor dx = todp(data_diff);
             if(!transposed)
                 bwd_data->enqueue(dx,W,dy,ws,0,q);
-            else 
+            else
                 bwd_data_tr->enqueue(dy,W,nullptr,dx,ws,0,q);
         }
 
@@ -114,7 +114,7 @@ namespace {
             dlprim::Tensor dB = todp(bias_diff);
             bwd_bias->enqueue(dy,dB,ws,0,q);
         }
-        
+
         sync_if_needed(grad_output.device());
 
         return std::tuple<at::Tensor,at::Tensor,at::Tensor>(data_diff,filter_diff,bias_diff);

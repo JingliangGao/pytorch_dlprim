@@ -43,12 +43,12 @@ namespace op_plugin {
                     getExecutionContext(self));
             sync_if_needed(self.device());
         }
-        
+
         if (!out.is_contiguous())
             out.copy_(out_c);
 
         return out;
-    
+
     }
 
     }  /* namespace op_plugin */

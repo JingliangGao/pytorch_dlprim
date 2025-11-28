@@ -19,11 +19,11 @@ namespace op_plugin {
             dlprim::Tensor X = todp(cinput);
             dlprim::Tensor W = todp(weight);
             dlprim::Shape os = X.shape();
-            
+
             int fi = W.shape()[1];
             int fo = W.shape()[0];
             int batch = X.shape().total_size()/fi;
-            
+
             os[os.size()-1] = fo;
 
             at::Tensor result = new_tensor_as(os,input);

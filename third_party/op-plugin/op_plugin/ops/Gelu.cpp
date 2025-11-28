@@ -17,10 +17,10 @@ namespace op_plugin {
         else {
             dlprim::core::pointwise_operation({X},{Y},{},"y0 = x0 * (1.0f + erf(x0 * 0.7071067811865475f  )) / 2.0f;",q); // 0.7071067811865475 = 1/sqrt(2)
         }
-            
+
         if (!out.is_contiguous())
             out.copy_(out_c);
-        
+
         sync_if_needed(self.device());
         return out;
     }

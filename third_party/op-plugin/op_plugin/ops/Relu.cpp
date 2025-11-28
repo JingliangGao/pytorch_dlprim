@@ -23,14 +23,14 @@ namespace op_plugin {
         dlprim::Tensor X = todp(self_c);
         dlprim::ExecutionContext q = getExecutionContext(self);
         dlprim::core::activation_forward(X,X,dlprim::StandardActivations::relu,q);
-        
+
         if (!self.is_contiguous())
             self.copy_(self_c);
-        
+
         sync_if_needed(self.device());
         return self;
     }
-    
+
 
     }  /* namespace op_plugin */
 }  /* namespace at_torch */

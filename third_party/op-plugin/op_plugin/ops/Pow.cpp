@@ -11,7 +11,7 @@ namespace op_plugin {
         double val = exponent.toDouble();
         dlprim::Tensor x = todp(self_c);
         dlprim::Tensor y = todp(out_c);
-        
+
         dlprim::core::pointwise_operation({x},{y},{val}, "y0=pow(x0,w0);", getExecutionContext(self));
 
         if(!out.is_contiguous())

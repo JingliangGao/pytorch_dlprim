@@ -4,7 +4,7 @@ namespace at_torch {
 namespace op_plugin {
 
 
-    at::Tensor & arange_out(const Scalar & start, const Scalar & end, const Scalar & step, at::Tensor & out) 
+    at::Tensor & arange_out(const Scalar & start, const Scalar & end, const Scalar & step, at::Tensor & out)
     {
         GUARD;
         double dstart = start.to<double>();
@@ -12,7 +12,7 @@ namespace op_plugin {
         double dstep = step.to<double>();
         int64_t size = std::ceil((dend - dstart) / dstep);
         int64_t numel = out.numel();
-        
+
         if(numel  != size) {
             if(numel!=0) {
                  TORCH_WARN("The number of elements in the out tensor of shape ", out.sizes(),

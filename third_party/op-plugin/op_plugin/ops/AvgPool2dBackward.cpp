@@ -13,7 +13,7 @@ namespace op_plugin {
         int strd[2];
         if(stride.empty()) {
             strd[0]=ker[0];
-            strd[1]=ker[1]; 
+            strd[1]=ker[1];
         }
         else {
             strd[0]=stride[0];
@@ -24,13 +24,13 @@ namespace op_plugin {
         dlprim::Tensor dX=todp(grad_input);
         dlprim::ExecutionContext q(getExecutionContext(self));
         dlprim::Context ctx(q);
-        
+
         auto pool = dlprim::core::AvgPooling2DBackward::create(
                         ctx,
                         ker,pad,strd,
                         count_include_pad,todp(grad_input.dtype())
-                    );                  
-        pool->enqueue(dX,dY,0,q);    
+                    );
+        pool->enqueue(dX,dY,0,q);
         sync_if_needed(self.device());
         return grad_input;
     }

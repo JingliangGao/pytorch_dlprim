@@ -15,7 +15,7 @@ namespace op_plugin {
                                                                   ::std::array<bool,3> output_mask)
     {
         GUARD;
-        bool weight_present = weight && weight->numel()>0; 
+        bool weight_present = weight && weight->numel()>0;
         bool affine = weight_present;
         dlprim::ExecutionContext q=getExecutionContext(input);
         dlprim::Context ctx(q);
@@ -46,7 +46,7 @@ namespace op_plugin {
 
         auto bn = dlprim::core::BatchNormFwdBwd::create(ctx,X.shape(),X.dtype());
         size_t ws_size = bn->workspace();
-        
+
         DataPtr tmp;
         dlprim::Tensor ws = make_workspace(tmp,ws_size,input.device());
 
@@ -58,11 +58,11 @@ namespace op_plugin {
                     train,
                     X,dY,
                     mean,var,
-                    W, 
+                    W,
                     (bwd_data  ? &dX : nullptr),
                     0.0,
                     (bwd_gamma ? &dG : nullptr),
-                    0.0, 
+                    0.0,
                     (bwd_beta  ? &dB : nullptr),
                     0.0,
                     eps,

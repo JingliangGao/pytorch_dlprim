@@ -33,7 +33,7 @@ namespace op_plugin {
     {
         at::Tensor self_c = self.contiguous();
         dlprim::Tensor X = todp(self_c);
-        
+
         at::Tensor result = new_tensor_as(X.shape(),self);
         logit_out(self_c,eps,result);
         return result;

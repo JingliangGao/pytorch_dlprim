@@ -10,7 +10,7 @@ namespace op_plugin {
             return max_pool2d_forward(ctx,self,kernel_size,stride,padding,dilation,ceil_mode);
         }
 
-        static at::Tensor max_pool2d_forward(AutogradContext *ctx,at::Tensor const &self, IntArrayRef kernel_size, IntArrayRef stride, IntArrayRef padding, IntArrayRef dilation, bool ceil_mode) 
+        static at::Tensor max_pool2d_forward(AutogradContext *ctx,at::Tensor const &self, IntArrayRef kernel_size, IntArrayRef stride, IntArrayRef padding, IntArrayRef dilation, bool ceil_mode)
         {
             GUARD;
             at::AutoDispatchBelowADInplaceOrView g;
@@ -47,7 +47,7 @@ namespace op_plugin {
             auto pool = dlprim::core::Pooling2DForward::create_max_pooling(dlprim_ctx,kernel,pad,strd,todp(self.dtype()));
             pool->enqueue(X,Y,q);
             sync_if_needed(self.device());
-            
+
             ctx->save_for_backward({self_cont});
             ctx->saved_data["kernel_0"]=kernel[0];
             ctx->saved_data["kernel_1"]=kernel[1];
@@ -74,7 +74,7 @@ namespace op_plugin {
 
             strd[0] = ctx->saved_data["strd_0"].toInt();
             strd[1] = ctx->saved_data["strd_1"].toInt();
-            
+
             at::Tensor grad_output_c = grad_output.contiguous(),input_c = input.contiguous();
             dlprim::Tensor dy=todp(grad_output_c);
             dlprim::Tensor x=todp(input_c);

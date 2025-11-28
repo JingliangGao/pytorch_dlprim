@@ -20,7 +20,7 @@ namespace {
         sync_if_needed(grad_output.device());
         return grad_input;
     }
-    
+
 }
 
     at::Tensor & upsample_nearest2d_backward_out(const at::Tensor & grad_output, at::IntArrayRef output_size, at::IntArrayRef input_size, ::std::optional<double> scales_h, ::std::optional<double> scales_w, at::Tensor & grad_input)
@@ -28,7 +28,7 @@ namespace {
         GUARD;
         return interpolate_2d_backward_out_internal(grad_output,output_size,input_size,scales_h,scales_w,grad_input,dlprim::InterpolateType::nearest);
     }
-    
+
 
     }  /* namespace op_plugin */
 }  /* namespace at_torch */

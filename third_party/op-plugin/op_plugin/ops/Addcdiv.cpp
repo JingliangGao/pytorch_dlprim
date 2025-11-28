@@ -11,7 +11,7 @@ namespace op_plugin {
         at::Tensor out_c = out.contiguous();
         at::Tensor tensor1_c = tensor1.contiguous();
         at::Tensor tensor2_c = tensor2.contiguous();
-        
+
         dlprim::Tensor x0 = todp(self_c);
         dlprim::Tensor x1 = todp(tensor1_c);
         dlprim::Tensor x2 = todp(tensor2_c);
@@ -20,7 +20,7 @@ namespace op_plugin {
         dlprim::core::pointwise_operation_broadcast({x0,x1,x2},{y0},{w0},
                                       "y0 = x0 + w0 * (x1/x2);",
                                       getExecutionContext(self));
-        
+
         if (!out.is_contiguous())
             out.copy_(out_c);
 
