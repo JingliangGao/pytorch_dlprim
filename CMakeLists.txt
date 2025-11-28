@@ -48,6 +48,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/third_party/dlprimitives)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/dlprimitives/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/op-plugin/op_plugin/generate)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/op-plugin/op_plugin/utils)
 include_directories(${Python3_INCLUDE_DIRS})   # Python include
 include_directories(${pybind11_INCLUDE_DIRS})  # pybind11 include
 
@@ -64,6 +65,7 @@ endif()
 file(GLOB OP_PLUGIN_SOURCES
     third_party/op-plugin/op_plugin/ops/*.cpp
     third_party/op-plugin/op_plugin/generate/*.cpp
+    third_party/op-plugin/op_plugin/utils/*.cpp
 )
 
 # collect source files in src/
