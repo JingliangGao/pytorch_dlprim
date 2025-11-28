@@ -34,9 +34,10 @@ namespace op_plugin {
     bool is_cpu_scalar(at::Tensor const &other, double &value);
 
     std::pair<dlprim::Shape, dlprim::Shape> squeeze_dim(dlprim::Shape s, at::OptionalIntArrayRef odim, bool keepdim);
-    static c10::Device ensure_has_index(c10::Device device);
+    c10::Device ensure_has_index(c10::Device device);
 
-    static at::Tensor make_contiguous_as_target_type(at::Tensor const &self,at::Tensor const &dst);
+
+    at::Tensor make_contiguous_as_target_type(at::Tensor const &self,at::Tensor const &dst);
     at::Tensor _copy_from(const at::Tensor & self, const at::Tensor & dst, bool non_blocking);
 
 

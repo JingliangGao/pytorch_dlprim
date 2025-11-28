@@ -26,7 +26,7 @@ namespace {
     at::Tensor & _upsample_nearest_exact2d_out(const at::Tensor & self, at::IntArrayRef output_size, ::std::optional<double> scales_h, ::std::optional<double> scales_w, at::Tensor & out)
     {
         GUARD;
-        return interpolate_2d_out_internal(self,output_size,scales_h,scales_w,out,dlprim::InterpolateType::bilinear,align_corners);
+        return interpolate_2d_out_internal(self,output_size,scales_h,scales_w,out,dlprim::InterpolateType::nearest_exact);
     }
     
 

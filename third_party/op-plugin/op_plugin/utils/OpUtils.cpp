@@ -80,7 +80,7 @@ namespace op_plugin {
         return  s;
     }
 
-    static  c10::Device ensure_has_index(c10::Device device) {
+    c10::Device ensure_has_index(c10::Device device) {
 
         if (device.is_cpu() || device.has_index()) {
             return device;
@@ -95,7 +95,7 @@ namespace op_plugin {
         return impl->getDevice();
     }
 
-    static at::Tensor make_contiguous_as_target_type(at::Tensor const &self,at::Tensor const &dst)
+    at::Tensor make_contiguous_as_target_type(at::Tensor const &self,at::Tensor const &dst)
     {
         GUARD;
         at::Tensor c_src = self;
