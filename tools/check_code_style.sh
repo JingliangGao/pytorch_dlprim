@@ -24,12 +24,16 @@ if [ ! -e .pre-commit-config.yaml ]; then
     rev: v2.3.0
     hooks:
     -   id: check-yaml
+        exclude: ^tools/
     -   id: end-of-file-fixer
+        exclude: ^tools/
     -   id: trailing-whitespace
+        exclude: ^tools/
 -   repo: https://github.com/psf/black
     rev: 22.10.0
     hooks:
     -   id: black" > .pre-commit-config.yaml
+        exclude: ^tools/
     echo "[INFO] Succeed to add '.pre-commit-config.yaml' file . "
 fi
 ## 2. add hooks
