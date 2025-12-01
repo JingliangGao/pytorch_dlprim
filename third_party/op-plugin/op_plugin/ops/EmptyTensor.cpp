@@ -7,7 +7,7 @@ namespace op_plugin {
     at::Tensor empty(IntArrayRef size, ::std::optional<at::ScalarType> dtype, ::std::optional<at::Layout> layout, ::std::optional<at::Device> device, ::std::optional<bool> pin_memory, ::std::optional<at::MemoryFormat> memory_format)
     {
         GUARD;
-        TORCH_CHECK(!layout || *layout == Layout::Strided,"pytorch_ocl supports only strided layout")
+        TORCH_CHECK(!layout || *layout == Layout::Strided,"torch_kpu supports only strided layout")
         // FIX ME Later -how to handle non Contiguous format {
         //TORCH_CHECK(!memory_format || *memory_format == MemoryFormat::Contiguous,"Contigonous format expected");
         // }
