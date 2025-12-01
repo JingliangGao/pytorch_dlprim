@@ -103,14 +103,32 @@ else()
 endif()
 
 # Install Python bindings
-foreach(PYNAME __init__.py)
-    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/torch_kpu/python/${PYNAME} "${CMAKE_BINARY_DIR}/torch_kpu/${PYNAME}" COPYONLY)
-    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/torch_kpu/python/${PYNAME} DESTINATION python/torch_kpu/)
-endforeach()
+set(TORCH_KPU_PYTHON_SRC "${CMAKE_CURRENT_SOURCE_DIR}/torch_kpu/python")
+set(TORCH_KPU_INSTALL_DIR "python/torch_kpu")
+
+# 安装整个 torch_kpu/python 目录（递归）
+install(
+    DIRECTORY ${TORCH_KPU_PYTHON_SRC}/
+    DESTINATION ${TORCH_KPU_INSTALL_DIR}
+    FILES_MATCHING
+        PATTERN "*.py"
+        PATTERN "*.so"
+        PATTERN "*.json"
+        PATTERN "*.txt"
+        PATTERN "*.yaml"
+        PATTERN "*.cfg"
+        PATTERN "*.ini"
+        PATTERN "*.md"
+        PATTERN ".*" EXCLUDE   # 忽略 .gitignore 等
+)
+
+# ----------------------------------------------------------------------
+# Install compiled extension (libtorch_kpu.so/.pyd)
+# ----------------------------------------------------------------------
 install(TARGETS ${PLUGIN_NAME}
-        LIBRARY DESTINATION python/torch_kpu/
-        RUNTIME DESTINATION python/torch_kpu/
-    )
+    LIBRARY DESTINATION ${TORCH_KPU_INSTALL_DIR}
+    RUNTIME DESTINATION ${TORCH_KPU_INSTALL_DIR}
+)
 
 # Add C++ examples
 if(BUILD_EXAMPLES)
