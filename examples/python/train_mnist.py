@@ -185,19 +185,17 @@ def main():
 
     parser.add_argument("--model", default="conv", help="Model type conv, vit")
 
-    parser.add_argument("--device", default="ocl")
+    parser.add_argument("--device", default="kpu")
     args = parser.parse_args()
 
     torch.manual_seed(args.seed)
 
     device = args.device
-    if device.find("ocl") == 0 or device.find("privateuseone") == 0:
-        import pytorch_ocl
+    if device.find("kpu") == 0 or device.find("privateuseone") == 0:
+        import torch_kpu
 
         if args.profile:
             torch.ocl.enable_profiling(device)
-    if device.find("xpu") == 0:
-        import intel_extension_for_pytorch
 
     train_kwargs = {"batch_size": args.batch_size}
     test_kwargs = {"batch_size": args.test_batch_size}

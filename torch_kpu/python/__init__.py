@@ -1,5 +1,5 @@
 import torch
-from .libpt_ocl import *
+from .libtorch_kpu import *
 from pathlib import Path
 import os, shutil
 import json
@@ -144,7 +144,7 @@ def empty_cache():
 
 
 try:
-    torch.utils.rename_privateuse1_backend("ocl")
-    torch._register_device_module("ocl", _OCL)
+    torch.utils.rename_privateuse1_backend("kpu")
+    torch._register_device_module("kpu", _OCL)
 except:
     pass

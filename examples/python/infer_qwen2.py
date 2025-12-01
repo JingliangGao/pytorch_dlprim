@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from tokenizers import Tokenizer
-import pytorch_ocl
+import torch_kpu
 import time
 import argparse
 
@@ -29,7 +29,7 @@ HIDDEN_SIZE = 1024  # 隐藏层维度
 NUM_LAYERS = 24  # Transformer 层数
 NUM_HEADS = 16  # 注意力头数
 MAX_SEQ_LEN = 32768  # 最大上下文长度
-DEVICE = "ocl"
+DEVICE = "kpu"
 
 
 # -----------------------------
@@ -184,8 +184,8 @@ def main():
 if __name__ == "__main__":
     args = parse_argument()
     if args.profile:
-        torch.ocl.enable_profiling("ocl")
-        with torch.ocl.profile("ocl", args.profile):
+        torch.ocl.enable_profiling("kpu")
+        with torch.ocl.profile("kpu", args.profile):
             main()
     else:
         main()

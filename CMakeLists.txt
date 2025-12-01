@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.10)
 project(pytorch_dlprim)
 find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
 
+# Plugin name
+set(PLUGIN_NAME libtorch_kpu)
+
 # Find Torch
 execute_process(
     COMMAND pip3 show torch
@@ -44,7 +47,7 @@ option(BUILD_EXAMPLES "Build example programs" OFF)
 
 add_subdirectory(third_party/dlprimitives)
 include_directories("${OCL_PATH}")
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/torch_kpu/csrc/include)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/third_party/dlprimitives)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/dlprimitives/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/op-plugin/op_plugin/generate)
@@ -61,53 +64,52 @@ if(NOT WIN32)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O2 -Wall")
 endif()
 
-# collect source files in third_party/op-plugin/
+# Collect source files in third_party/op-plugin/
 file(GLOB OP_PLUGIN_SOURCES
     third_party/op-plugin/op_plugin/ops/*.cpp
     third_party/op-plugin/op_plugin/generate/*.cpp
     third_party/op-plugin/op_plugin/utils/*.cpp
 )
 
-# collect source files in src/
-file(GLOB PYOCL_SOURCES
-    src/*.cpp
-)
+# Collect source files in torch_kpu/
+set(CORE_SRCS)
+add_subdirectory(torch_kpu/csrc/core)
+set(CPP_SRCS "torch_kpu/csrc/pybind.cpp" ${CORE_SRCS})
 
 # Define our library target
-add_library(libpt_ocl SHARED
+add_library(${PLUGIN_NAME} SHARED
     ${OP_PLUGIN_SOURCES}
-    ${PYOCL_SOURCES}
+    ${CPP_SRCS}
 )
 
 
-
-target_compile_features(libpt_ocl PRIVATE cxx_std_17)
+target_compile_features(${PLUGIN_NAME} PRIVATE cxx_std_17)
 
 # Link against LibTorch
-target_include_directories(libpt_ocl PRIVATE ${FMT_INCLUDE_DIRS})
-target_compile_definitions(libpt_ocl PRIVATE FMT_HEADER_ONLY)
-target_link_libraries(libpt_ocl PRIVATE ${TORCH_LIBRARIES} ${OCL_LIB} dlprim_core ${Python3_LIBRARIES})
+target_include_directories(${PLUGIN_NAME} PRIVATE ${FMT_INCLUDE_DIRS})
+target_compile_definitions(${PLUGIN_NAME} PRIVATE FMT_HEADER_ONLY)
+target_link_libraries(${PLUGIN_NAME} PRIVATE ${TORCH_LIBRARIES} ${OCL_LIB} dlprim_core ${Python3_LIBRARIES})
 if(WIN32)
-    target_link_libraries(libpt_ocl ${Python3_LIBRARIES})
+    target_link_libraries(${PLUGIN_NAME} ${Python3_LIBRARIES})
 endif()
-set_target_properties(libpt_ocl PROPERTIES PREFIX "" OUTPUT_NAME "libpt_ocl")
+set_target_properties(${PLUGIN_NAME} PROPERTIES PREFIX "" OUTPUT_NAME "${PLUGIN_NAME}")
 if(NOT WIN32)
-	set_target_properties(libpt_ocl PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/pytorch_ocl/")
+	set_target_properties(${PLUGIN_NAME} PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/torch_kpu/")
 else()
-	set_target_properties(libpt_ocl PROPERTIES
-		RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/pytorch_ocl/"
+	set_target_properties(${PLUGIN_NAME} PROPERTIES
+		RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/torch_kpu/"
 		SUFFIX ".pyd"
 	)
 endif()
 
 # Install Python bindings
 foreach(PYNAME __init__.py)
-    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/python/pytorch_ocl/${PYNAME} "${CMAKE_BINARY_DIR}/pytorch_ocl/${PYNAME}" COPYONLY)
-    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/python/pytorch_ocl/${PYNAME} DESTINATION python/pytorch_ocl)
+    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/torch_kpu/python/${PYNAME} "${CMAKE_BINARY_DIR}/torch_kpu/${PYNAME}" COPYONLY)
+    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/torch_kpu/python/${PYNAME} DESTINATION python/torch_kpu/)
 endforeach()
-install(TARGETS libpt_ocl
-        LIBRARY DESTINATION python/pytorch_ocl
-        RUNTIME DESTINATION python/pytorch_ocl
+install(TARGETS ${PLUGIN_NAME}
+        LIBRARY DESTINATION python/torch_kpu/
+        RUNTIME DESTINATION python/torch_kpu/
     )
 
 # Add C++ examples

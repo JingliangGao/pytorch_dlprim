@@ -76,7 +76,7 @@ namespace at_torch {
 // We do this using pybind: exposing an "extension_name.custom_device()" function in python,
 // that's implemented in C++.
 // The implementation in this file maps directly to the `PrivateUse1` device type.
-PYBIND11_MODULE(libpt_ocl, m) {
+PYBIND11_MODULE(libtorch_kpu, m) {
     m.def("impl_custom_device", &at_torch::get_custom_device, "get custom device object");
     m.def("impl_seed_all", &at_torch::seed_all, "Seed all devices");
     m.def("impl_synchronize_device", &at_torch::synchronize_device,"Sychronize device");

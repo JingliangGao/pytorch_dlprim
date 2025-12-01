@@ -17,9 +17,9 @@ find_package(Torch REQUIRED PATHS ${TORCH_PATH} NO_DEFAULT_PATH)
 # ========================
 # OpenCL 可选库
 # ========================
-# 如果你要链接 libpt_ocl.so
-# set(PT_OCL_PATH "/home/kylin/gjl/project/pytorch_dlprim/build/debug/pytorch_ocl")
-# set(PT_OCL_LIB "${PT_OCL_PATH}/libpt_ocl.so")
+# 如果你要链接 libtorch_kpu.so
+# set(PT_OCL_PATH "/home/kylin/gjl/project/pytorch_dlprim/build/debug/torch_kpu")
+# set(PT_OCL_LIB "${PT_OCL_PATH}/libtorch_kpu.so")
 
 # CUDA 库路径
 link_directories(
