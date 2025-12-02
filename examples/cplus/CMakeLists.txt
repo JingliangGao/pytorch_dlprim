@@ -8,6 +8,7 @@ foreach(dir ${CHILD_DIRS})
     if(IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${dir})
         # collect .cpp files in the sub-directory
         file(GLOB SRC_FILES  ${CMAKE_CURRENT_SOURCE_DIR}/${dir}/*.cpp)
+        file(GLOB HEADER_FILES  ${CMAKE_CURRENT_SOURCE_DIR}/${dir}/*.h)
         if(SRC_FILES)
             # Executable name is the same as the sub-directory name
             set(TARGET_NAME ${dir})
@@ -18,7 +19,7 @@ foreach(dir ${CHILD_DIRS})
             target_include_directories(${TARGET_NAME} PRIVATE
                 ${PROJECT_SOURCE_DIR}/dlprimitives/include
                 ${PROJECT_SOURCE_DIR}/include
-                ${OpenCV_INCLUDE_DIRS}
+                ${HEADER_FILES}
             )
 
             # Link main library and dependencies
