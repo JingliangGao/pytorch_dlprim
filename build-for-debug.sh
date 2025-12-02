@@ -65,7 +65,7 @@ else
 fi
 
 echo ">> [INFO]: Start building ..."
-make -j6
+make -j16
 echo ">> [INFO]: Start installing ..."
 make install
 

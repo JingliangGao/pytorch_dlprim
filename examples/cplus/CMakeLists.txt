@@ -8,7 +8,6 @@ foreach(dir ${CHILD_DIRS})
     if(IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${dir})
         # collect .cpp files in the sub-directory
         file(GLOB SRC_FILES  ${CMAKE_CURRENT_SOURCE_DIR}/${dir}/*.cpp)
-        file(GLOB HEADER_FILES  ${CMAKE_CURRENT_SOURCE_DIR}/${dir}/*.h)
         if(SRC_FILES)
             # Executable name is the same as the sub-directory name
             set(TARGET_NAME ${dir})
@@ -19,11 +18,11 @@ foreach(dir ${CHILD_DIRS})
             target_include_directories(${TARGET_NAME} PRIVATE
                 ${PROJECT_SOURCE_DIR}/dlprimitives/include
                 ${PROJECT_SOURCE_DIR}/include
-                ${HEADER_FILES}
+                ${CMAKE_CURRENT_SOURCE_DIR}/${dir}
             )
 
             # Link main library and dependencies
-            target_link_libraries(${TARGET_NAME} PRIVATE pt_ocl ${TORCH_LIBRARIES} ${OCL_LIB} )
+            target_link_libraries(${TARGET_NAME} PRIVATE libtorch_kpu ${TORCH_LIBRARIES} ${OCL_LIB} )
 
             # Set C++17
             target_compile_features(${TARGET_NAME} PRIVATE cxx_std_17)
