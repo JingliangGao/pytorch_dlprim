@@ -23,8 +23,9 @@ def export_mobilenetv2_torchscript(use_script=False):
     file_name = "mobilenetv2_script.pt" if use_script else "mobilenetv2_trace.pt"
     current_file = Path(__file__).resolve()
     examples_dir = current_file.parent.parent.parent
-    ts_model.save(examples_dir / "data" / file_name)
-    print(f"TorchScript model saved to {file_name}")
+    model_file = examples_dir / "data" / file_name
+    ts_model.save(model_file)
+    print(f"[INFO] Succeed to save model in to '{model_file}' .")
 
 
 if __name__ == "__main__":
