@@ -7,7 +7,8 @@ from pathlib import Path
 # download the tiny shakespeare dataset
 current_file = Path(__file__).resolve()
 data_dir = current_file.parent.parent.parent / "data"
-input_file_path = data_dir / "input.txt"
+input_file_path = data_dir / "shakespeare_char/input.txt"
+os.makedirs(os.path.dirname(input_file_path), exist_ok=True)
 if not os.path.exists(input_file_path):
     data_url = "https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt"
     with open(input_file_path, "w") as f:
@@ -52,8 +53,8 @@ print(f"val has {len(val_ids):,} tokens")
 # export to bin files
 train_ids = np.array(train_ids, dtype=np.uint16)
 val_ids = np.array(val_ids, dtype=np.uint16)
-train_ids.tofile(data_dir / "train.bin")
-val_ids.tofile(data_dir / "val.bin")
+train_ids.tofile(data_dir / "shakespeare_char/train.bin")
+val_ids.tofile(data_dir / "shakespeare_char/val.bin")
 
 # save the meta information as well, to help us encode/decode later
 meta = {
@@ -61,10 +62,10 @@ meta = {
     "itos": itos,
     "stoi": stoi,
 }
-with open(data_dir / "meta.pkl", "wb") as f:
+with open(data_dir / "shakespeare_char/meta.pkl", "wb") as f:
     pickle.dump(meta, f)
 
-print(f"[INFO] Succceed to save data in {data_dir} .")
+print(f"[INFO] Succceed to save data in '{data_dir}/shakespeare_char/' .")
 # length of dataset in characters:  1115394
 # all the unique characters:
 #  !$&',-.3:;?ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
