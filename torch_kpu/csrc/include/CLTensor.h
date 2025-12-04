@@ -305,14 +305,14 @@ namespace at_torch {
             if(i >= int(data_.size()))
                 throw std::runtime_error("Invalid Device #" + std::to_string(i));
             DevData &res = *data_[i];
-            if(res.ready)
-                return res;
-            res.ctx=dlprim::Context(res.name);
-            res.fp64 = res.ctx.check_device_extension("cl_khr_fp64");
-            res.queue = res.ctx.make_execution_context(res.enable_profiling ? CL_QUEUE_PROFILING_ENABLE : 0);
-            res.cache.prepare(res.ctx);
-            res.ready = true;
-            std::cout << "Accessing device #" << i << ":" << res.ctx.name() << std::endl;
+            if(!res.ready) {
+                res.ctx=dlprim::Context(res.name);
+                res.fp64 = res.ctx.check_device_extension("cl_khr_fp64");
+                res.queue = res.ctx.make_execution_context(res.enable_profiling ? CL_QUEUE_PROFILING_ENABLE : 0);
+                res.cache.prepare(res.ctx);
+                res.ready = true;
+                std::cout << "Accessing device #" << i << ":" << res.ctx.name() << std::endl;
+            }
             return res;
         }
 
