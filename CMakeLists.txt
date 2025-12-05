@@ -12,8 +12,7 @@ execute_process(
 )
 string(REGEX MATCH "Location: ([^\n\r]+)" _match "${TORCH_PIP_INFO}")
 set(TORCH_LOCATION "${CMAKE_MATCH_1}")
-# set(CMAKE_PREFIX_PATH ${TORCH_LOCATION}/torch/share/cmake/Torch)
-set(CMAKE_PREFIX_PATH /home/kylin/gjl/project/pytorch_dlprim/third_party/pytorch/torch/share/cmake/Torch/)
+set(CMAKE_PREFIX_PATH ${TORCH_LOCATION}/torch/share/cmake/Torch)
 find_package(Torch REQUIRED)
 
 # Find fmt library
@@ -74,8 +73,10 @@ file(GLOB OP_PLUGIN_SOURCES
 
 # Collect source files in torch_kpu/
 set(CORE_SRCS)
+set(PROFILER_SRCS)
 add_subdirectory(torch_kpu/csrc/core)
-set(CPP_SRCS "torch_kpu/csrc/Pybind.cpp" ${CORE_SRCS})
+add_subdirectory(torch_kpu/csrc/profiler)
+set(CPP_SRCS "torch_kpu/csrc/Pybind.cpp" ${CORE_SRCS} ${PROFILER_SRCS})
 
 # Define our library target
 add_library(${PLUGIN_NAME} SHARED

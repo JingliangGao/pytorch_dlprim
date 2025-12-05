@@ -1,5 +1,6 @@
 
 #include "Allocator.h"
+#include "ProfilerInterface.h"
 
 namespace at_torch {
 

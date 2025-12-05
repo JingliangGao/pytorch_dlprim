@@ -136,7 +136,7 @@ def gen_dispatch_return(
             f"""{sig.defn(name=impl_name)}{{
 
     /* insert profiler anchor */
-    // at_torch::profiler::NPURecordFunction record("{op_name}");
+    GUARD;
     return at_torch::{ns}::{op_name}({args_exprs_str});
 }}
 \n"""

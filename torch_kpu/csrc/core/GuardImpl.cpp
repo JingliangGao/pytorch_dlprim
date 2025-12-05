@@ -88,6 +88,7 @@ namespace at_torch {
 // Register Guard
 C10_REGISTER_GUARD_IMPL(PrivateUse1, KPUGuardImpl);
 
+
 #define REGISTER_PRIVATEUSE1_BACKEND(name)                                                                             \
     int rename_privateuse1_backend()                                                                                   \
     {                                                                                                                  \

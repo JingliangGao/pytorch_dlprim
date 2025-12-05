@@ -3,7 +3,7 @@
 #include <torch/torch.h>
 #include <ATen/ATen.h>
 #include "CLTensor.h"
-#include "utils.h"
+#include "Utils.h"
 #include <dlprim/core/util.hpp>
 namespace at_torch {
 
@@ -16,9 +16,9 @@ namespace at_torch {
     using c10::Device;
     using c10::DeviceType;
 
-    Device get_custom_device(int id)
+    c10::Device get_custom_device(int id)
     {
-      return Device(OpenCLDeviceType, id);
+      return c10::Device(c10::DeviceType::PrivateUse1, id);
     }
     void seed_all(uint64_t seed)
     {

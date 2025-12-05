@@ -1,6 +1,7 @@
 #include "CLTensor.h"
-#include "utils.h"
+#include "Utils.h"
 #include "OpUtils.h"
+#include "ProfilerInterface.h"
 #include <ATen/ATen.h>
 #include <ATen/native/CPUFallback.h>
 #include <ATen/InferSize.h>

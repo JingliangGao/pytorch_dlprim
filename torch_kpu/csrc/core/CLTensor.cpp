@@ -1,5 +1,6 @@
 #include "CLTensor.h"
-#include <fstream>
+#include "ProfilerInterface.h"
+
 #ifdef DLPRIM_USE_CL1_HPP
 #error "DLPrimitives need to be compiled agaist cl2.hpp in order to work with pytorch. cl.hpp is not supported and known to fail"
 #endif
@@ -27,11 +28,6 @@ namespace at_torch {
     }
 
 
-    ChromeTraceBaseTime& ChromeTraceBaseTime::singleton() {
-      static ChromeTraceBaseTime instance;
-      return instance;
-    }
-
     inline int64_t transToRelativeTime(int64_t time) {
       int64_t res = time - ChromeTraceBaseTime::singleton().get();
 
@@ -40,6 +36,7 @@ namespace at_torch {
       }
       return res;
     }
+
 
     std::uint64_t CLCache::round(uint64_t v)
     {

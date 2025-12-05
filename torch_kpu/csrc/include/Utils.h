@@ -2,7 +2,7 @@
 #include "CLTensor.h"
 
 namespace at_torch {
-    ///
+
     inline void sync_if_needed(c10::Device const &d)
     {
         CLContextManager::sync_if_needed(d.index());

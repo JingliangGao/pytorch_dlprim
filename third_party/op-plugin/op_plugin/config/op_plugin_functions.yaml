@@ -151,6 +151,10 @@ official:
   - func: max_pool2d(Tensor self, int[2] kernel_size, int[2] stride=[], int[2] padding=0, int[2] dilation=1, bool ceil_mode=False) -> Tensor
   - func: _has_compatible_shallow_copy_type(Tensor self, Tensor from) -> bool
   - func: max.dim_max(Tensor self, int dim, bool keepdim=False, *, Tensor(a!) max, Tensor(b!) max_values) -> (Tensor(a!) values, Tensor(b!) indices)
+  # - func: masked_fill_.Scalar(Tensor(a!) self, Tensor mask, Scalar value) -> Tensor(a!)
+  # - func: masked_fill_.Tensor(Tensor(a!) self, Tensor mask, Tensor value) -> Tensor(a!)
+  # - func: broadcast_tensors(Tensor[] tensors) -> Tensor[]
+  # - func: broadcast_to(Tensor(a) self, SymInt[] size) -> Tensor(a)
 
 
 deprecated:

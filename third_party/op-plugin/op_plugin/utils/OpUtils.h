@@ -19,7 +19,7 @@
 #include <dlprim/random.hpp>
 
 #include "CLTensor.h"
-#include "utils.h"
+#include "Utils.h"
 
 namespace at_torch {
 namespace op_plugin {

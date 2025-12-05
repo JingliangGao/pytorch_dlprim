@@ -1,4 +1,4 @@
-from transformers import AutoModelForCausalLM
+from transformers import AutoModelForCausalLM, AutoTokenizer
 from pathlib import Path
 import torch
 import argparse
@@ -52,6 +52,35 @@ def convert_safetensor_to_pt(args):
     print(f"[INFO] Saved merged '{model_name}' in {data_dir} . ")
 
 
+def convert_safetensor_to_ts(args):
+    model_name = Path(args.model).name
+    tokenizer = AutoTokenizer.from_pretrained(args.model, trust_remote_code=True)
+    model = AutoModelForCausalLM.from_pretrained(
+        args.model, torch_dtype=torch.float32, trust_remote_code=True
+    )
+    model.eval()
+
+    dummy = torch.randint(0, tokenizer.vocab_size, (1, 32))
+
+    class Wrapper(torch.nn.Module):
+        def __init__(self, m):
+            super().__init__()
+            self.m = m
+
+        def forward(self, x):
+            out = self.m(input_ids=x)
+            return out.last_hidden_state
+
+    wrapper = Wrapper(model.model).eval()
+
+    # Trace
+    current_file = Path(__file__).resolve()
+    data_dir = f"{current_file.parent.parent}/examples/data/"
+    traced = torch.jit.trace(wrapper, dummy)
+    traced.save(f"{data_dir}/{model_name}.pt")
+
+
 if __name__ == "__main__":
     args = parse_argument()
-    convert_safetensor_to_pt(args)
+    # convert_safetensor_to_pt(args)
+    convert_safetensor_to_ts(args)

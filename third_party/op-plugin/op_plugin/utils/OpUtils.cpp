@@ -1,4 +1,5 @@
 #include "OpUtils.h"
+#include "ProfilerInterface.h"
 
 namespace at_torch {
 namespace op_plugin {
@@ -86,8 +87,8 @@ namespace op_plugin {
             return device;
         }
 
-        if (device.type() == OpenCLDeviceType) {
-            return c10::Device(OpenCLDeviceType, 0);
+        if (device.type() == c10::DeviceType::PrivateUse1) {
+            return c10::Device(c10::DeviceType::PrivateUse1, 0);
         }
 
         const c10::impl::DeviceGuardImplInterface* impl =

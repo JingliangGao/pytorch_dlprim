@@ -1,3 +1,4 @@
+#include "ProfilerInterface.h"
 #include "Utils.h"
 
 namespace at_torch {
@@ -76,4 +77,14 @@ namespace at_torch {
     {
         profiling_queue = queue;
     }
+
+
+
+
+    ChromeTraceBaseTime& ChromeTraceBaseTime::singleton() {
+      static ChromeTraceBaseTime instance;
+      return instance;
+    }
+
+
 };
