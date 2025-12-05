@@ -5,7 +5,7 @@ namespace op_plugin {
 
     at::Tensor binary_cross_entropy(const at::Tensor & self, const at::Tensor & target, const c10::optional<at::Tensor> & weight, int64_t reduction)
     {
-        GUARD;
+
         TORCH_CHECK(!weight || weight->numel()==0,"Weight in binar_cross_entroy isn't supported");
         at::Tensor self_c = self.contiguous();
         at::Tensor target_c = target.contiguous();

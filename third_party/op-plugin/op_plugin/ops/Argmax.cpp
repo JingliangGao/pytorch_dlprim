@@ -6,7 +6,7 @@ namespace op_plugin {
 
     at::Tensor & argmax_out(const at::Tensor & self, c10::optional<int64_t> dim, bool keepdim, at::Tensor & out)
     {
-        GUARD;
+
         at::Tensor self_c = self.contiguous();
         at::Tensor out_c = out.contiguous();
 

@@ -5,7 +5,7 @@ namespace op_plugin {
 
     ::std::tuple<at::Tensor,at::Tensor,at::Tensor> native_batch_norm(const at::Tensor & input, const c10::optional<at::Tensor> & weight, const c10::optional<at::Tensor> & bias, const c10::optional<at::Tensor> & running_mean, const c10::optional<at::Tensor> & running_var, bool training, double momentum, double eps)
     {
-        GUARD;
+
         bool weight_present = weight && weight->numel()>0;
         bool bias_present = bias && bias->numel()>0;
         bool mean_present = running_mean && running_mean->numel() > 0;

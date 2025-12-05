@@ -6,7 +6,7 @@ namespace op_plugin {
 
     at::Tensor & avg_pool2d_out(const at::Tensor & self, IntArrayRef kernel_size, IntArrayRef stride, IntArrayRef padding, bool /*ceil_mode*/, bool count_include_pad, c10::optional<int64_t> divisor_override, at::Tensor & out)
     {
-        GUARD;
+
         TORCH_CHECK(!divisor_override,"Divisor override is not implemented");
         // note ceil mode calculations are based on output size
         int ker[2] = {int(kernel_size[0]),int(kernel_size[1])};

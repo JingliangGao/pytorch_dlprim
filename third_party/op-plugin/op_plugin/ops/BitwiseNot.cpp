@@ -5,7 +5,7 @@ namespace op_plugin {
 
     at::Tensor & bitwise_not_out(const at::Tensor & self, at::Tensor & out)
     {
-        GUARD;
+
         TORCH_CHECK(is_integral_type(self,true),"~ is valid for integer types");
 
         at::Tensor self_c = self.contiguous();

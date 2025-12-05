@@ -6,7 +6,7 @@ namespace op_plugin {
 
     at::Tensor native_dropout_backward(const at::Tensor & grad_output, const at::Tensor & mask, double scale)
     {
-        GUARD;
+
         at::Tensor grad_output_c=grad_output.contiguous();
         at::Tensor mask_c=mask.contiguous();
         dlprim::Tensor dy = todp(grad_output_c);

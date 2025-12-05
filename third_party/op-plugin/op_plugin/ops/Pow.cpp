@@ -5,7 +5,7 @@ namespace op_plugin {
 
     at::Tensor & pow_out(const at::Tensor & self, const Scalar & exponent, at::Tensor & out)
     {
-        GUARD;
+
         at::Tensor self_c = self.contiguous();
         at::Tensor out_c = out.contiguous();
         double val = exponent.toDouble();

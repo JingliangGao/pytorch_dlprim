@@ -5,7 +5,7 @@ namespace op_plugin {
 
     at::Tensor & bitwise_and_out(const at::Tensor & self, const at::Tensor & other, at::Tensor & out)
     {
-        GUARD;
+
         TORCH_CHECK(is_integral_type(self,true) && is_integral_type(other,true),"& is not valid for floating point");
 
         at::Tensor self_c  = self.contiguous();

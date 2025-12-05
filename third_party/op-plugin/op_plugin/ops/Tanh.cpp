@@ -6,7 +6,7 @@ namespace op_plugin {
 
     at::Tensor & tanh_out(const at::Tensor & self, at::Tensor & out)
     {
-        GUARD;
+
         at::Tensor self_c = self.contiguous();
         at::Tensor out_c = out.contiguous();
 
@@ -23,7 +23,7 @@ namespace op_plugin {
 
     at::Tensor tanh(const at::Tensor & self)
     {
-        GUARD;
+
         at::Tensor self_c = self.contiguous();
         dlprim::Tensor x=todp(self_c);
         at::Tensor out = new_tensor_as(x.shape(),self);
@@ -35,7 +35,7 @@ namespace op_plugin {
 
     at::Tensor & tanh_(at::Tensor & self)
     {
-        GUARD;
+
         at::Tensor self_c = self.contiguous();
         dlprim::Tensor X=todp(self_c);
         dlprim::core::activation_forward(X,X,dlprim::StandardActivations::tanh,getExecutionContext(self));

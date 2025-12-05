@@ -6,7 +6,7 @@ namespace op_plugin {
 
     at::Tensor & tanh_backward_out(const at::Tensor & grad_output, const at::Tensor & output, at::Tensor & grad_input)
     {
-        GUARD;
+
         at::Tensor grad_input_c  = grad_input.contiguous();
         at::Tensor grad_output_c = grad_output.contiguous();
         at::Tensor output_c      = output.contiguous();

@@ -6,7 +6,7 @@ namespace op_plugin {
 
     at::Tensor & arange_out(const Scalar & start, const Scalar & end, const Scalar & step, at::Tensor & out)
     {
-        GUARD;
+
         double dstart = start.to<double>();
         double dend   = end.to<double>();
         double dstep = step.to<double>();

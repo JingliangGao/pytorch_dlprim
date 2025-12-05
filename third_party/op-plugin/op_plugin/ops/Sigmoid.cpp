@@ -6,7 +6,7 @@ namespace op_plugin {
 
     at::Tensor & sigmoid_out(const at::Tensor & self, at::Tensor & out)
     {
-        GUARD;
+
         at::Tensor self_c = self.contiguous();
         at::Tensor out_c = out.contiguous();
 
@@ -23,7 +23,7 @@ namespace op_plugin {
 
     at::Tensor sigmoid(const at::Tensor & self)
     {
-        GUARD;
+
         at::Tensor self_c = self.contiguous();
 
         dlprim::Tensor x=todp(self_c);
@@ -38,7 +38,7 @@ namespace op_plugin {
 
     at::Tensor & sigmoid_(at::Tensor & self)
     {
-        GUARD;
+
         at::Tensor self_c = self.contiguous();
 
         dlprim::Tensor X=todp(self_c);

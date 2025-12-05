@@ -6,7 +6,7 @@ namespace op_plugin {
 
     at::Tensor &zero_(at::Tensor &self)
     {
-        GUARD;
+
         if(self.numel() == 0)
             return self;
         at::Tensor self_c = self.contiguous();

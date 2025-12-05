@@ -7,7 +7,7 @@ namespace {
 
     at::Tensor & interpolate_2d_out_internal(const at::Tensor & self, at::IntArrayRef /*output_size*/, ::std::optional<double> scales_h, ::std::optional<double> scales_w, at::Tensor & out,dlprim::InterpolateType method,bool align_c=false)
     {
-        GUARD;
+
         at::Tensor self_c = self.contiguous();
         at::Tensor out_c = out.contiguous();
         double scale_h = scales_h ? *scales_h : -1;
@@ -24,7 +24,7 @@ namespace {
 
     at::Tensor & upsample_nearest2d_out(const at::Tensor & self, at::IntArrayRef output_size, ::std::optional<double> scales_h, ::std::optional<double> scales_w, at::Tensor & out)
     {
-        GUARD;
+
         return interpolate_2d_out_internal(self,output_size,scales_h,scales_w,out,dlprim::InterpolateType::nearest);
     }
 

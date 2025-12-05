@@ -6,7 +6,7 @@ namespace op_plugin {
 
     at::Tensor & clamp_out(const at::Tensor & self, const c10::optional<Scalar> & min, const c10::optional<Scalar> & max, at::Tensor & out)
     {
-        GUARD;
+
         at::Tensor self_c = self.contiguous(), out_c = out.contiguous();
         dlprim::Tensor Y = todp(out_c);
         dlprim::Tensor X = todp(self_c);
@@ -30,7 +30,7 @@ namespace op_plugin {
 
     at::Tensor & clamp_min_out(const at::Tensor & self, const Scalar & min, at::Tensor & out)
     {
-        GUARD;
+
         at::Tensor self_c = self.contiguous(), out_c = out.contiguous();
         dlprim::Tensor Y = todp(out_c);
         dlprim::Tensor X = todp(self_c);

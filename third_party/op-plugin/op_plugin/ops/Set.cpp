@@ -68,7 +68,7 @@ namespace op_plugin {
 
 
     at::Tensor & set_(at::Tensor & self) {
-        GUARD;
+
 
         // Preserve dtype (same as NPU implementation; later assert it is unchanged)
         caffe2::TypeMeta dtype = self.dtype();

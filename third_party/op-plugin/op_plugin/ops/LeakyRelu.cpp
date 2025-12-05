@@ -6,7 +6,7 @@ namespace op_plugin {
 
     at::Tensor & leaky_relu_out(const at::Tensor & self, const Scalar & negative_slope, at::Tensor & out)
     {
-        GUARD;
+
         double slope = negative_slope.to<double>();
         at::Tensor self_c = self.contiguous();
         at::Tensor out_c = out.contiguous();
@@ -24,7 +24,7 @@ namespace op_plugin {
 
     at::Tensor & leaky_relu_backward_out(const at::Tensor & grad_output, const at::Tensor & self, const Scalar & negative_slope, bool /*self_is_result*/, at::Tensor & grad_input)
     {
-        GUARD;
+
         double slope = negative_slope.to<double>();
         at::Tensor self_c = self.contiguous(),
                grad_input_c  = grad_input.contiguous(),

@@ -7,7 +7,7 @@ namespace {
 
     at::Tensor & interpolate_2d_backward_out_internal(const at::Tensor & grad_output, at::IntArrayRef /*output_size*/, at::IntArrayRef /*input_size*/, ::std::optional<double> scales_h, ::std::optional<double> scales_w, at::Tensor & grad_input,dlprim::InterpolateType method,bool align_c=false)
     {
-        GUARD;
+
         at::Tensor grad_output_c = grad_output.contiguous();
         at::Tensor grad_input_c  = grad_input.contiguous();
         double scale_h = scales_h ? *scales_h : -1;
@@ -25,7 +25,7 @@ namespace {
 
     at::Tensor & _upsample_nearest_exact2d_backward_out(const at::Tensor & grad_output, at::IntArrayRef output_size, at::IntArrayRef input_size, ::std::optional<double> scales_h, ::std::optional<double> scales_w, at::Tensor & grad_input)
     {
-        GUARD;
+
         return interpolate_2d_backward_out_internal(grad_output,output_size,input_size,scales_h,scales_w,grad_input,dlprim::InterpolateType::nearest_exact);
     }
 

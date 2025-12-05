@@ -6,7 +6,7 @@ namespace op_plugin {
 
     at::Tensor & sigmoid_backward_out(const at::Tensor & grad_output, const at::Tensor & output, at::Tensor & grad_input)
     {
-        GUARD;
+
         at::Tensor output_c = output.contiguous(),
                grad_output_c = grad_output.contiguous(),
                grad_input_c  = grad_input.contiguous();

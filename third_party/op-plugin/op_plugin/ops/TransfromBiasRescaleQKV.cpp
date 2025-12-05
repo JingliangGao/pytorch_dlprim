@@ -6,7 +6,7 @@ namespace op_plugin {
 
     std::tuple<at::Tensor, at::Tensor, at::Tensor> _transform_bias_rescale_qkv(const at::Tensor& qkv,const at::Tensor& qkv_bias,const int64_t num_head)
     {
-        GUARD;
+
         auto qkv_ = qkv.is_nested()
             ? c10::MaybeOwned<at::Tensor>::owned(qkv.to_padded_tensor(0))
             : c10::MaybeOwned<at::Tensor>::borrowed(qkv);

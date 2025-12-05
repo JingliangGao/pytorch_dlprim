@@ -12,7 +12,7 @@ namespace op_plugin {
 
         static at::Tensor max_pool2d_forward(AutogradContext *ctx,at::Tensor const &self, IntArrayRef kernel_size, IntArrayRef stride, IntArrayRef padding, IntArrayRef dilation, bool ceil_mode)
         {
-            GUARD;
+
             at::AutoDispatchBelowADInplaceOrView g;
 
             TORCH_CHECK(kernel_size.size()==2,"Invalid sizes");
@@ -62,7 +62,7 @@ namespace op_plugin {
             return max_pool_2d_backward(ctx,grad_outputs);
         }
         static tensor_list max_pool_2d_backward(AutogradContext *ctx, tensor_list grad_outputs) {
-            GUARD;
+
             at::Tensor grad_output = grad_outputs[0];
             at::Tensor input = ctx->get_saved_variables()[0];
             int kernel[2],pad[2],strd[2];
@@ -92,7 +92,7 @@ namespace op_plugin {
     };
 
     at::Tensor max_pool2d(at::Tensor const &self, IntArrayRef kernel_size, IntArrayRef stride, IntArrayRef padding, IntArrayRef dilation, bool ceil_mode) {
-        GUARD;
+
         return max_pool2d_cls::apply(self,kernel_size,stride,padding,dilation,ceil_mode);
     }
 

@@ -7,7 +7,7 @@ namespace op_plugin {
     at::Tensor & amin_out(const at::Tensor & self, IntArrayRef dim, bool keepdim, at::Tensor & out)
     {
 
-        GUARD;
+
         at::Tensor self_c = self.contiguous();
         at::Tensor out_c = out.contiguous();
 
@@ -50,7 +50,7 @@ namespace op_plugin {
 
     at::Tensor min(const at::Tensor & self)
     {
-        GUARD;
+
         at::Tensor self_c = self.contiguous();
         dlprim::Tensor X = todp(self_c);
         at::Tensor result = new_tensor_as(dlprim::Shape(),self);
@@ -79,7 +79,7 @@ namespace op_plugin {
 
     at::Tensor & minimum_out(const at::Tensor & self, const at::Tensor & other, at::Tensor & out)
     {
-        GUARD;
+
         at::Tensor self_c  = self.contiguous();
         at::Tensor out_c = out.contiguous();
         at::Tensor other_c = other.contiguous();

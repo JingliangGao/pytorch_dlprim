@@ -5,7 +5,7 @@ namespace op_plugin {
 
     at::Tensor as_strided(const at::Tensor & self, at::IntArrayRef size, at::IntArrayRef stride, c10::optional<int64_t> storage_offset)
     {
-        GUARD;
+
         at::Tensor result = at::alias(self);
         result.getIntrusivePtr()->set_sizes_and_strides(size,stride);
         if(storage_offset)
@@ -17,7 +17,7 @@ namespace op_plugin {
 
     at::Tensor _reshape_alias(const at::Tensor & self, at::IntArrayRef size, at::IntArrayRef stride)
     {
-        GUARD;
+
         at::Tensor data = at::alias(self);
         data.getIntrusivePtr()->set_sizes_and_strides(size,stride);
         return data;

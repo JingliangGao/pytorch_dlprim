@@ -5,7 +5,7 @@ namespace op_plugin {
 
     at::Tensor & nll_loss_backward_out(const at::Tensor & grad_output, const at::Tensor & self, const at::Tensor & target, const c10::optional<at::Tensor> & weight, int64_t reduction, int64_t ignore_index, const at::Tensor & /*total_weight*/, at::Tensor & grad_input)
     {
-        GUARD;
+
 
         TORCH_CHECK(!weight || weight->numel()==0,"Weight NLLLoss isn't supported");
         TORCH_CHECK(ignore_index <0,"Ignore index isn't supported");

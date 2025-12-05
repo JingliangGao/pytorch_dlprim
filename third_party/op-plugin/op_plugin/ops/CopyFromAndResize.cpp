@@ -5,12 +5,12 @@ namespace op_plugin {
 
     at::Tensor _copy_from(const at::Tensor & self, const at::Tensor & dst, bool non_blocking)
     {
-        GUARD;
+
         if(self.numel() == 0 && dst.numel() == 0) {
             return self;
         }
 
-        if(dst.device().type() == c10::DeviceType::CPU && self.device().type() == OpenCLDeviceType) {
+        if(dst.device().type() == c10::DeviceType::CPU && self.device().type() == c10::DeviceType::PrivateUse1) {
             at::Tensor c_src = make_contiguous_as_target_type(self,dst);
             dlprim::Tensor t = todp(c_src);
             auto ec = getExecutionContext(self);
@@ -26,7 +26,7 @@ namespace op_plugin {
                 dst.copy_(dst_c);
             }
         }
-        else if(self.device().type() == c10::DeviceType::CPU && dst.device().type() == OpenCLDeviceType) {
+        else if(self.device().type() == c10::DeviceType::CPU && dst.device().type() == c10::DeviceType::PrivateUse1) {
             at::Tensor c_src = make_contiguous_as_target_type(self,dst);
             auto ec = getExecutionContext(dst);
             if(dst.is_contiguous()) {
@@ -41,7 +41,7 @@ namespace op_plugin {
                 dst.copy_(temp);
             }
         }
-        else if(self.device().type() == OpenCLDeviceType && dst.device().type() == OpenCLDeviceType) {
+        else if(self.device().type() == c10::DeviceType::PrivateUse1 && dst.device().type() == c10::DeviceType::PrivateUse1) {
             if(self.is_contiguous() && dst.is_contiguous()) {
                 dlprim::core::pointwise_operation_broadcast({todp(self)},{todp(dst)},{},"y0=x0;",getExecutionContext(self.device()));
             }

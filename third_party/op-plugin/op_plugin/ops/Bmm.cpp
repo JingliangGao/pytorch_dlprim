@@ -34,7 +34,7 @@ namespace {
 
     at::Tensor & mm_bmm_out_nocheck(const at::Tensor & self, const at::Tensor & mat2, at::Tensor & out,int bmm)
     {
-        GUARD;
+
         at::Tensor A,B,C;
         bool At=false,Bt=false,Ct=false,Ac,Bc,Cc;
         int lda,ldb,ldc;

@@ -6,7 +6,7 @@ namespace op_plugin {
 
     at::Tensor & addmm_out(const at::Tensor & self, const at::Tensor & mat1, const at::Tensor & mat2, const Scalar &sbeta, const Scalar & salpha, at::Tensor & out)
     {
-        GUARD;
+
         double alpha = salpha.toDouble();
         double beta = sbeta.toDouble();
         if(alpha == 1 && beta == 0) {

@@ -14,7 +14,7 @@ namespace op_plugin {
                                                                   double eps,
                                                                   ::std::array<bool,3> output_mask)
     {
-        GUARD;
+
         bool weight_present = weight && weight->numel()>0;
         bool affine = weight_present;
         dlprim::ExecutionContext q=getExecutionContext(input);

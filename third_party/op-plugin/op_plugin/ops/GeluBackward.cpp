@@ -6,7 +6,7 @@ namespace op_plugin {
 
     at::Tensor & gelu_backward_out(const at::Tensor & grad_output, const at::Tensor & self, c10::string_view approximate, at::Tensor & grad_input)
     {
-        GUARD;
+
         at::Tensor grad_output_c = grad_output.contiguous(),
                grad_input_c  = grad_input.contiguous(),
                self_c = self.contiguous();

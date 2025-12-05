@@ -5,7 +5,7 @@ namespace op_plugin {
 
     at::Tensor & binary_cross_entropy_backward_out(const at::Tensor & grad_output, const at::Tensor & self, const at::Tensor & target, const c10::optional<at::Tensor> & weight, int64_t reduction, at::Tensor & grad_input)
     {
-        GUARD;
+
         TORCH_CHECK(!weight || weight->numel()==0,"Weight in binar_cross_entroy isn't supported");
         at::Tensor self_c = self.contiguous();
         at::Tensor target_c = target.contiguous();
@@ -29,7 +29,7 @@ namespace op_plugin {
 
     at::Tensor binary_cross_entropy_backward(const at::Tensor & grad_output, const at::Tensor & self, const at::Tensor & target, const c10::optional<at::Tensor> & weight, int64_t reduction)
     {
-        GUARD;
+
         at::Tensor self_c = self.contiguous();
         at::Tensor input_grad = new_tensor_as(todp(self_c).shape(),self_c);
         binary_cross_entropy_backward_out(grad_output,self_c,target,weight,reduction,input_grad);

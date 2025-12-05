@@ -6,7 +6,7 @@ namespace op_plugin {
 
     at::Tensor view(const at::Tensor & self, at::IntArrayRef size)
     {
-        GUARD;
+
         //auto size = C10_AS_at::IntArrayRef_SLOW(sym_size);
         auto inferred_size = at::infer_size_dv(size, self.numel());
         auto stride =

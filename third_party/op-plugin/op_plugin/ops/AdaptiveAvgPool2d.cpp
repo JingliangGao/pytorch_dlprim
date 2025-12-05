@@ -5,7 +5,7 @@ namespace op_plugin {
 
     at::Tensor _adaptive_avg_pool2d(const at::Tensor & self, IntArrayRef output_size)
     {
-        GUARD;
+
         at::Tensor self_c = self.contiguous();
         dlprim::Tensor X = todp(self_c);
         int h=X.shape()[2];

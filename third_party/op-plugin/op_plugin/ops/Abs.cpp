@@ -5,7 +5,7 @@ namespace op_plugin {
 
     at::Tensor & abs_out(const at::Tensor & self, at::Tensor & out)
     {
-        GUARD;
+
 
         at::Tensor self_c = self.contiguous();
         at::Tensor out_c = out.contiguous();
@@ -24,7 +24,7 @@ namespace op_plugin {
 
     Tensor abs(const Tensor & self)
     {
-        GUARD;
+
         Tensor self_c = self.contiguous();
         dlprim::Tensor x=todp(self_c);
         Tensor out = new_tensor_as(x.shape(),self);

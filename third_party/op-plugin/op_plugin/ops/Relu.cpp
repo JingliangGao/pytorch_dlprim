@@ -5,7 +5,7 @@ namespace op_plugin {
 
     // at::Tensor relu(const at::Tensor & self)
     // {
-    //     GUARD;
+    //
     //     at::Tensor self_c = self.contiguous();
     //     dlprim::Tensor x = todp(self_c);
     //     at::Tensor out = new_tensor_as(x.shape(), self);
@@ -18,7 +18,7 @@ namespace op_plugin {
 
     at::Tensor & relu_(at::Tensor & self)
     {
-        GUARD;
+
         at::Tensor self_c = self.contiguous();
         dlprim::Tensor X = todp(self_c);
         dlprim::ExecutionContext q = getExecutionContext(self);
@@ -36,7 +36,7 @@ namespace op_plugin {
     public:
         static torch::Tensor std_activation_forward(AutogradContext *ctx, torch::Tensor x)
         {
-            GUARD;
+
             at::AutoDispatchBelowADInplaceOrView g;
 
             Tensor x_c = x.contiguous();
@@ -54,7 +54,7 @@ namespace op_plugin {
             return std_activation_forward(ctx,x);
         }
         static tensor_list std_activation_backward(AutogradContext *ctx, tensor_list grad_outputs) {
-            GUARD;
+
             auto grad_output = grad_outputs[0].contiguous();
             torch::Tensor result = ctx->get_saved_variables()[0];
             dlprim::Tensor dy=todp(grad_output);
@@ -72,7 +72,7 @@ namespace op_plugin {
 
     template<dlprim::StandardActivations Act>
     torch::Tensor act_autograd(torch::Tensor const &x) {
-        GUARD;
+
         return act_cls<Act>::apply(x);
     }
 

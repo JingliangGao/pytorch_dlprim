@@ -5,7 +5,7 @@ namespace op_plugin {
 
     at::Tensor & lerp_out(const at::Tensor & self, const at::Tensor & end, const Scalar & weight, at::Tensor & out)
     {
-        GUARD;
+
         at::Tensor self_c = self.contiguous();
         at::Tensor end_c = end.contiguous();
         dlprim::Tensor x0=todp(self_c);

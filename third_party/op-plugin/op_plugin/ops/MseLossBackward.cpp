@@ -6,7 +6,7 @@ namespace op_plugin {
 
     at::Tensor mse_loss_backward(const at::Tensor & grad_output, const at::Tensor & self, const at::Tensor & target, int64_t reduction)
     {
-        GUARD;
+
         at::Tensor grad_output_c = grad_output.contiguous();
         at::Tensor self_c = self.contiguous();
         at::Tensor target_c = target.contiguous();

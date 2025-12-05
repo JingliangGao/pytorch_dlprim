@@ -6,7 +6,7 @@ namespace op_plugin {
 
     at::Tensor & addcmul_out(const at::Tensor & self, const at::Tensor & tensor1, const at::Tensor & tensor2, const Scalar & value, at::Tensor & out)
     {
-        GUARD;
+
         at::Tensor self_c = self.contiguous();
         at::Tensor out_c = out.contiguous();
         at::Tensor tensor1_c = tensor1.contiguous();

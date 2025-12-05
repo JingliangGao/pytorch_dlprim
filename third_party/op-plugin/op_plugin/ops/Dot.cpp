@@ -6,7 +6,7 @@ namespace op_plugin {
 
     at::Tensor dot(const at::Tensor & self, const at::Tensor & tensor)
     {
-        GUARD;
+
         at::Tensor self_c = self.contiguous();
         at::Tensor tensor_c = tensor.contiguous();
 

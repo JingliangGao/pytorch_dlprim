@@ -7,7 +7,7 @@ namespace op_plugin {
 
     ::std::tuple<at::Tensor &,at::Tensor &> log_sigmoid_forward_out(const at::Tensor & self, at::Tensor & output, at::Tensor & buffer)
     {
-        GUARD;
+
         at::Tensor self_c = self.contiguous(), output_c = output.contiguous();
         at::Tensor buffer_c = buffer.contiguous();
         dlprim::Tensor x=todp(self_c), out = todp(output_c), buf = todp(buffer_c);
@@ -32,7 +32,7 @@ namespace op_plugin {
 
     ::std::tuple<at::Tensor,at::Tensor> log_sigmoid_forward(const at::Tensor & self)
     {
-        GUARD;
+
         at::Tensor out = at::empty_like(self);
         at::Tensor buffer = at::empty_like(self);
 

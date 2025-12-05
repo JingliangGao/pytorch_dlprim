@@ -6,7 +6,7 @@ namespace op_plugin {
 
     at::Tensor hardtanh_backward(const at::Tensor & grad_output, const at::Tensor & self, const Scalar & min_val, const Scalar & max_val)
     {
-        GUARD;
+
         at::Tensor self_c = self.contiguous();
         dlprim::Tensor X  = todp(self_c);
         dlprim::Tensor dY = todp(grad_output);

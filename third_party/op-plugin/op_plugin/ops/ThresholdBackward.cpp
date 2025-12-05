@@ -6,7 +6,7 @@ namespace op_plugin {
 
     at::Tensor & threshold_backward_out(const at::Tensor & grad_output, const at::Tensor & self, const Scalar & threshold, at::Tensor & grad_input)
     {
-        GUARD;
+
         at::Tensor self_c = self.contiguous(),
                grad_input_c = grad_input.contiguous(),
                grad_output_c = grad_output.contiguous();

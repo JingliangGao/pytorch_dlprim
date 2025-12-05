@@ -49,7 +49,7 @@ namespace {
         int64_t groups,
         ::std::array<bool,3> output_mask)
     {
-        GUARD;
+
         at::Tensor grad_output_c = grad_output.contiguous();
         at::Tensor input_c = input.contiguous();
         dlprim::Tensor dy = todp(grad_output_c);

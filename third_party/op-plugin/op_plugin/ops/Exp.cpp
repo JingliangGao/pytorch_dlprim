@@ -6,7 +6,7 @@ namespace op_plugin {
 
     at::Tensor & exp_out(const at::Tensor & self, at::Tensor & out)
     {
-        GUARD;
+
 
         at::Tensor self_c = self.contiguous();
         at::Tensor out_c = out.contiguous();

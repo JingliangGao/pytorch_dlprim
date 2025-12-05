@@ -5,7 +5,7 @@ namespace op_plugin {
 
 
     at::Tensor & copy_(at::Tensor & self, const at::Tensor & src, bool non_blocking) {
-        GUARD;
+
 
         // If same storage / same tensor, nothing to do
         if (self.unsafeGetTensorImpl() == src.unsafeGetTensorImpl()) {

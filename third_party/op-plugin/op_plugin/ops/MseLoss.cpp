@@ -5,7 +5,7 @@ namespace op_plugin {
 
     at::Tensor mse_loss(const at::Tensor & self, const at::Tensor & target, int64_t reduction)
     {
-        GUARD;
+
         at::Tensor self_c = self.contiguous();
         dlprim::Tensor x=todp(self_c);
         at::Tensor target_c = target.contiguous();

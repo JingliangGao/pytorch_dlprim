@@ -5,7 +5,7 @@ namespace op_plugin {
 
     Scalar _local_scalar_dense(const at::Tensor & self)
     {
-        GUARD;
+
         TORCH_CHECK(self.numel()==1);
         dlprim::Tensor x=todp(self);
         union {

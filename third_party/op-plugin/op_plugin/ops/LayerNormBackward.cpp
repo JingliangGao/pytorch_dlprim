@@ -13,7 +13,7 @@ namespace op_plugin {
             const c10::optional<at::Tensor> & bias,
             ::std::array<bool,3> output_mask)
     {
-        GUARD;
+
         int N = 1;
         std::vector<int> ns;
         for(auto v:normalized_shape) {

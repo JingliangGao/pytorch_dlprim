@@ -5,7 +5,7 @@ namespace op_plugin {
 
     at::Tensor & eq_out(const at::Tensor & self, const Scalar & other, at::Tensor & out)
     {
-        GUARD;
+
         at::Tensor self_c = self.contiguous();
         at::Tensor out_c = out.contiguous();
 
@@ -24,7 +24,7 @@ namespace op_plugin {
 
     at::Tensor & eq_out(const at::Tensor & self, const at::Tensor & other, at::Tensor & out)
     {
-        GUARD;
+
         at::Tensor self_c  = self.contiguous();
         at::Tensor out_c = out.contiguous();
         at::Tensor other_c = other.contiguous();

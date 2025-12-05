@@ -13,7 +13,7 @@ namespace op_plugin {
         at::Tensor & output,
         at::Tensor & total_weight)
     {
-        GUARD;
+
         TORCH_CHECK(!weight || weight->numel()==0,"Weight NLLLoss isn't supported");
         TORCH_CHECK(ignore_index <0,"Ignore index isn't supported");
         at::Tensor self_c = self.contiguous();

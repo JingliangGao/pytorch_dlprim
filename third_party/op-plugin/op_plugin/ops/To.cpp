@@ -10,7 +10,7 @@ namespace op_plugin {
         bool non_blocking,
         bool copy)
     {
-        GUARD;
+
 
         // memory_format default: Preserve on CPU-like backends? 保持与上面样例一致的策略
         auto memory_format = options.memory_format_opt().value_or(c10::MemoryFormat::Contiguous);
@@ -22,7 +22,7 @@ namespace op_plugin {
             return self;
         }
 
-        bool pin_out = non_blocking && (self.device().type() == OpenCLDeviceType) && options.device().is_cpu() &&
+        bool pin_out = non_blocking && (self.device().type() == c10::DeviceType::PrivateUse1) && options.device().is_cpu() &&
                        (options.layout() == c10::kStrided);
 
         // Preserve behavior: 如果用户要求 Preserve，并且 tensor 是 non-overlapping AND dense，
@@ -48,7 +48,7 @@ namespace op_plugin {
 
 
     at::Tensor _to_copy(const at::Tensor & self, ::std::optional<at::ScalarType> dtype, ::std::optional<at::Layout> layout, ::std::optional<at::Device> device, ::std::optional<bool> pin_memory, bool non_blocking, ::std::optional<at::MemoryFormat> memory_format){
-        GUARD;
+
 
         // 1) create override options then merge
         c10::TensorOptions opts_override;
@@ -76,7 +76,7 @@ namespace op_plugin {
         }
 
         // 4) dtype double on OCL fallback to float (consistent with to(dtype) behavior)
-        if (options.dtype() == at::ScalarType::Double && options.device().type() == OpenCLDeviceType) {
+        if (options.dtype() == at::ScalarType::Double && options.device().type() == c10::DeviceType::PrivateUse1) {
             if (!CLContextManager::fp64(options.device().index())) {
                 TORCH_WARN("Device ocl:" + std::to_string(options.device().index()) + " does not support cl_khr_fp64, falling back to float");
                 options = options.dtype(at::ScalarType::Float);
@@ -93,7 +93,7 @@ namespace op_plugin {
         // 6) memory_format handling: determine effective memory_format
         c10::MemoryFormat mf = memory_format.has_value()
             ? *memory_format
-            : (self.device().type() == OpenCLDeviceType ? c10::MemoryFormat::Contiguous : c10::MemoryFormat::Preserve);
+            : (self.device().type() == c10::DeviceType::PrivateUse1 ? c10::MemoryFormat::Contiguous : c10::MemoryFormat::Preserve);
 
         if (memory_format.has_value()) {
             TORCH_CHECK(
@@ -105,7 +105,7 @@ namespace op_plugin {
         }
 
         // 7) pin_out behavior (non_blocking -> CPU pinned) similar to to_impl_dlprim
-        bool pin_out = non_blocking && (self.device().type() == OpenCLDeviceType) && options.device().is_cpu() &&
+        bool pin_out = non_blocking && (self.device().type() == c10::DeviceType::PrivateUse1) && options.device().is_cpu() &&
                        (options.layout() == c10::kStrided);
 
         // 8) If Preserve requested and tensor is non-overlapping and dense, use empty_strided to preserve strides
@@ -140,7 +140,7 @@ namespace op_plugin {
         bool copy,
         c10::optional<c10::MemoryFormat> optional_memory_format)
     {
-        GUARD;
+
         device = ensure_has_index(device);
 
         c10::TensorOptions opts = self.options().device(device).dtype(dtype);
@@ -158,7 +158,7 @@ namespace op_plugin {
         bool copy,
         c10::optional<c10::MemoryFormat> optional_memory_format)
     {
-        GUARD;
+
 
         if (self.dtype() == dtype && !copy) {
             return self;
@@ -167,7 +167,7 @@ namespace op_plugin {
 
         if (dtype == at::ScalarType::Double) {
             bool fp64_supported = true;
-            if (self.device().type() == OpenCLDeviceType) {
+            if (self.device().type() == c10::DeviceType::PrivateUse1) {
                 fp64_supported = CLContextManager::fp64(self.device().index());
             }
             if (!fp64_supported) {
@@ -195,7 +195,7 @@ namespace op_plugin {
         bool copy,
         c10::optional<c10::MemoryFormat> optional_memory_format)
     {
-        GUARD;
+
         c10::TensorOptions opts = other.options();
         if (optional_memory_format.has_value()) {
             opts = opts.memory_format(optional_memory_format.value());

@@ -46,7 +46,7 @@ namespace {
                                     IntArrayRef output_padding,
                                     int64_t groups)
     {
-        GUARD;
+
         at::Tensor X_tmp = input.contiguous();
         dlprim::Tensor X = todp(X_tmp);
         dlprim::Tensor W = todp(weight);

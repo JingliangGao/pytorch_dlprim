@@ -6,7 +6,7 @@ namespace op_plugin {
 namespace {
     at::Tensor& cat_internal(const ITensorListRef& tensors, int64_t dim, at::Tensor& out, bool reuse)
     {
-        GUARD;
+
 
         std::vector<dlprim::Tensor> list;
         std::vector<at::Tensor> list_c;
@@ -91,7 +91,7 @@ namespace {
 
     at::Tensor & cat_out(const ITensorListRef & tensors, int64_t dim, at::Tensor & out)
     {
-        GUARD;
+
         cat_internal(tensors, dim, out, true);
 		return out;
     }
@@ -104,7 +104,7 @@ namespace {
 
     at::Tensor _cat(TensorList tensors, int64_t dim)
     {
-        GUARD;
+
         at::Tensor out;
         cat_internal(tensors,dim,out,false);
         return out;

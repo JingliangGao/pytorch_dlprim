@@ -5,7 +5,7 @@ namespace op_plugin {
 
     at::Tensor & add_out(const at::Tensor & self, const at::Tensor & other, const Scalar & alpha, at::Tensor & out)
     {
-        GUARD;
+
         at::Tensor out_c = out.contiguous();
         dlprim::Tensor y0=todp(out_c);
         double value=0;

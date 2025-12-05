@@ -6,7 +6,7 @@ namespace op_plugin {
 
     at::Tensor & hardsigmoid_backward_out(const at::Tensor & grad_output, const at::Tensor & self, at::Tensor & grad_input)
     {
-        GUARD;
+
         at::Tensor self_c = self.contiguous(),
                grad_input_c = grad_input.contiguous(),
                grad_output_c = grad_output.contiguous();
@@ -27,7 +27,7 @@ namespace op_plugin {
 
     at::Tensor hardswish_backward(const at::Tensor & grad_output, const at::Tensor & self)
     {
-        GUARD;
+
         at::Tensor grad_output_c = grad_output.contiguous();
         dlprim::Tensor dy=todp(grad_output_c);
 

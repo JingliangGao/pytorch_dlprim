@@ -5,7 +5,7 @@ namespace op_plugin {
 
     at::Tensor & prod_out(const at::Tensor & self, int64_t dim, bool keepdim, ::std::optional<ScalarType> dtype, at::Tensor & out)
     {
-        GUARD;
+
         std::vector<int64_t> dims({dim});
 
         at::Tensor self_c = self.contiguous();

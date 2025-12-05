@@ -5,7 +5,7 @@ namespace op_plugin {
 
     at::Tensor & log_softmax_backward_data_out_nocheck(const at::Tensor & grad_output, const at::Tensor & output, int64_t dim, bool is_log, at::Tensor & out)
     {
-        GUARD;
+
         dlprim::Tensor dx = todp(out);
         at::Tensor output_c = output.contiguous(),grad_output_c = grad_output.contiguous();
         dlprim::Tensor y = todp(output_c);

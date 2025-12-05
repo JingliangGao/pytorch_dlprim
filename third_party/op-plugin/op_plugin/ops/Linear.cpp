@@ -12,7 +12,7 @@ namespace op_plugin {
         }
         static at::Tensor linear_forward(AutogradContext *ctx,const at::Tensor & input, const at::Tensor & weight, const c10::optional<at::Tensor> & bias)
         {
-            GUARD;
+
             at::AutoDispatchBelowADInplaceOrView g;
 
             at::Tensor cinput = input.contiguous();
@@ -53,7 +53,7 @@ namespace op_plugin {
             return linear_backward(ctx,grad_outputs);
         }
         static tensor_list linear_backward(AutogradContext *ctx, tensor_list grad_outputs) {
-            GUARD;
+
             dlprim::Tensor X = todp(ctx->get_saved_variables()[0]);
             dlprim::Tensor W = todp(ctx->get_saved_variables()[1]);
 
@@ -110,7 +110,7 @@ namespace op_plugin {
     };
     at::Tensor linear(const at::Tensor & input, const at::Tensor & weight, const c10::optional<at::Tensor> & bias)
     {
-        GUARD;
+
         return linear_cls::apply(input,weight,bias);
     }
 

@@ -5,7 +5,7 @@ namespace op_plugin {
 
     at::Tensor & mean_out(const at::Tensor & self, OptionalIntArrayRef dim, bool keepdim, c10::optional<ScalarType> dtype, at::Tensor & out)
     {
-        GUARD;
+
 
         at::Tensor self_c = self.contiguous();
         at::Tensor out_c = out.contiguous();

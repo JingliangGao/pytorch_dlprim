@@ -6,7 +6,7 @@ namespace op_plugin {
 
     at::Tensor & log_sigmoid_backward_out(const at::Tensor & grad_output, const at::Tensor & self, const at::Tensor & buffer, at::Tensor & grad_input)
     {
-        GUARD;
+
         at::Tensor grad_output_c = grad_output.contiguous();
         at::Tensor self_c = self.contiguous();
         at::Tensor buffer_c = buffer.contiguous();
@@ -36,7 +36,7 @@ namespace op_plugin {
 
     at::Tensor log_sigmoid_backward(const at::Tensor & grad_output, const at::Tensor & self, const at::Tensor & buffer)
     {
-        GUARD;
+
         at::Tensor grad_input = at::empty_like(grad_output);
         log_sigmoid_backward_out(grad_output,self,buffer,grad_input);
         return grad_input;

@@ -6,7 +6,7 @@ namespace op_plugin {
 
     at::Tensor & hardswish_(at::Tensor & self)
     {
-        GUARD;
+
 
         at::Tensor self_c = self.contiguous();
         dlprim::Tensor x=todp(self_c);

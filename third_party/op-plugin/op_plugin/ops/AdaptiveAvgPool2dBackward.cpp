@@ -6,7 +6,7 @@ namespace op_plugin {
 
     at::Tensor _adaptive_avg_pool2d_backward(const at::Tensor & grad_output, const at::Tensor & self)
     {
-        GUARD;
+
         at::Tensor self_c = self.contiguous();
         at::Tensor grad_output_c = grad_output.contiguous();
         dlprim::Tensor X = todp(self_c);

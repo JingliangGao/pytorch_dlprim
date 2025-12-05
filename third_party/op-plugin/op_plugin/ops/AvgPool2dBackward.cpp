@@ -5,7 +5,7 @@ namespace op_plugin {
 
     at::Tensor & avg_pool2d_backward_out(const at::Tensor & grad_output, const at::Tensor & self, IntArrayRef kernel_size, IntArrayRef stride, IntArrayRef padding, bool ceil_mode, bool count_include_pad, c10::optional<int64_t> divisor_override, at::Tensor & grad_input)
     {
-        GUARD;
+
         TORCH_CHECK(ceil_mode==false,"Ceil mode=true not implemented");
         TORCH_CHECK(!divisor_override,"Divisor override is not implemented");
         int ker[2] = {int(kernel_size[0]),int(kernel_size[1])};

@@ -34,7 +34,7 @@ namespace op_plugin {
 
     at::Tensor masked_select(const at::Tensor & self, const at::Tensor & mask)
     {
-        GUARD;
+
         at::Tensor self_c = self.contiguous();
         at::Tensor mask_c = mask.contiguous();
         dlprim::Tensor x = todp(self_c);

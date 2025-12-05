@@ -6,7 +6,7 @@ namespace op_plugin {
 
     ::std::tuple<at::Tensor,at::Tensor> native_dropout(const at::Tensor & input, double p, ::std::optional<bool> train)
     {
-        GUARD;
+
         at::Tensor input_c = input.contiguous();
         dlprim::Tensor X = todp(input_c);
         at::Tensor mask = new_tensor_as(X.shape(),input_c);

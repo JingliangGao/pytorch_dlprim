@@ -6,7 +6,7 @@ namespace op_plugin {
 
     at::Tensor & logit_out(const at::Tensor & self, ::std::optional<double> eps, at::Tensor & out)
     {
-        GUARD;
+
         at::Tensor self_c = self.contiguous(), out_c = out.contiguous();
         dlprim::Tensor X = todp(self_c);
         dlprim::Tensor Y = todp(out_c);

@@ -5,7 +5,7 @@ namespace op_plugin {
 
     static at::Tensor & softmax_out_nocheck(const at::Tensor & self, int64_t dim, bool is_log, at::Tensor & out)
     {
-        GUARD;
+
         at::Tensor self_c = self.contiguous();
         dlprim::Tensor x=todp(self_c);
         dlprim::Tensor y=todp(out);
