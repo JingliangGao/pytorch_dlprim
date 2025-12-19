@@ -92,25 +92,6 @@ class _OCL:
     def enable_profiling(device):
         impl_enable_profiling(_device_index(device))
 
-    class device:
-        current_device = 0
-
-        def __init__(self, device):
-            pass
-            # self.idx = _device_index(device)
-            # self.prev_idx = -1
-
-        def __enter__(self):
-            pass
-            # print("Enter:",self.idx)
-            # self.prev_idx = self.current_device
-            # self.current_device = self.idx
-
-        def __exit__(self, type, value, traceback):
-            # print("Leave:",self.idx,"->",self.current_device)
-            # self.current_device=self.prev_device
-            return False
-
     @staticmethod
     def synchronize(dev=None):
         if dev is None:
