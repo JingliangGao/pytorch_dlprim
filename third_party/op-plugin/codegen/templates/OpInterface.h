@@ -1,10 +1,10 @@
 #include "CLTensor.h"
-#include "Utils.h"
 #include "OpUtils.h"
 #include "ProfilerInterface.h"
+#include "Utils.h"
 #include <ATen/ATen.h>
-#include <ATen/native/CPUFallback.h>
 #include <ATen/InferSize.h>
+#include <ATen/native/CPUFallback.h>
 #include <ATen/ops/_native_multi_head_attention_cpu_dispatch.h>
 #include <iostream>
 #include <torch/torch.h>
@@ -22,16 +22,17 @@
 #include <dlprim/gpu/gemm.hpp>
 #include <dlprim/random.hpp>
 
+// clang-format off
+namespace at_torch{
+namespace ${namespace}
+{
 
-namespace at_torch {
-namespace ${namespace} {
+    using namespace torch;
+    using torch::autograd::AutogradContext;
+    using torch::autograd::tensor_list;
 
-using namespace torch;
-using torch::autograd::tensor_list;
-using torch::autograd::AutogradContext;
+    ${declarations}
 
-
-${declarations}
-
-  }  /* namespace ${namespace} */
-}  /* namespace at_torch */
+} // namespace ${namespace}
+} /* namespace at_torch */
+// clang-format on
