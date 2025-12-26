@@ -1,6 +1,6 @@
 #include <ATen/ATen.h>
-#include <ATen/native/CPUFallback.h>
 #include <ATen/InferSize.h>
+#include <ATen/native/CPUFallback.h>
 #include <ATen/ops/_native_multi_head_attention_cpu_dispatch.h>
 #include <iostream>
 #include <torch/torch.h>
@@ -21,25 +21,29 @@
 #include "CLTensor.h"
 #include "Utils.h"
 
-namespace at_torch {
-namespace op_plugin {
-    struct SeqState {
-         dlprim::RandomState::seed_type seed;
-         dlprim::RandomState::sequence_type sequence;
-    };
+namespace at_torch
+{
+namespace op_plugin
+{
+struct SeqState
+{
+    dlprim::RandomState::seed_type seed;
+    dlprim::RandomState::sequence_type sequence;
+};
 
-    SeqState get_random_seq(c10::Device const &d,int64_t items,c10::optional<at::Generator> generator);
+SeqState
+get_random_seq(c10::Device const& d, int64_t items, c10::optional<at::Generator> generator);
 
-    bool is_integral_type(at::Tensor const &t,bool include_bool);
-    bool is_cpu_scalar(at::Tensor const &other, double &value);
+bool is_integral_type(at::Tensor const& t, bool include_bool);
+bool is_cpu_scalar(at::Tensor const& other, double& value);
+bool IsCPUScalar(const at::Tensor& tensor);
 
-    std::pair<dlprim::Shape, dlprim::Shape> squeeze_dim(dlprim::Shape s, at::OptionalIntArrayRef odim, bool keepdim);
-    c10::Device ensure_has_index(c10::Device device);
+std::pair<dlprim::Shape, dlprim::Shape>
+squeeze_dim(dlprim::Shape s, at::OptionalIntArrayRef odim, bool keepdim);
+c10::Device ensure_has_index(c10::Device device);
 
+at::Tensor make_contiguous_as_target_type(at::Tensor const& self, at::Tensor const& dst);
+at::Tensor _copy_from(const at::Tensor& self, const at::Tensor& dst, bool non_blocking);
 
-    at::Tensor make_contiguous_as_target_type(at::Tensor const &self,at::Tensor const &dst);
-    at::Tensor _copy_from(const at::Tensor & self, const at::Tensor & dst, bool non_blocking);
-
-
-  }  /* namespace op_plugin */
-}  /* namespace at_torch */
+} /* namespace op_plugin */
+} /* namespace at_torch */
