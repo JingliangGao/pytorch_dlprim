@@ -16,18 +16,9 @@ pytorch_dlprim is tested on following devices:
 
 
 ## Build Project
-1. set up environment
-```shell
-sudo apt update
-sudo apt install -y ocl-icd-opencl-dev opencl-headers
-sudo apt install -y libfmt-dev
-```
-
-2. build project
 ```shell
 git clone --recursive https://github.com/JingliangGao/pytorch_dlprim.git
 cd pytorch_dlprim && git checkout dev-opencl
-pip install -r requirements.txt
 chmod +x build-for-debug.sh && ./build-for-debug.sh
 ```
 
@@ -41,4 +32,9 @@ python3 examples/python/train_mnist.py
 2. profile a mnist net
 ```shell
 python3 examples/python/train_mnist.py --profile ./profile_log  # './profile_log' is the directory to save data
+```
+
+## Reformat code style
+```shell
+chmod +x tools/check_code_style.sh && ./tools/check_code_style.sh
 ```

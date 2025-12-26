@@ -12,7 +12,10 @@ execute_process(
 )
 string(REGEX MATCH "Location: ([^\n\r]+)" _match "${TORCH_PIP_INFO}")
 set(TORCH_LOCATION "${CMAKE_MATCH_1}")
+message(STATUS "Found Torch installation at: ${TORCH_LOCATION}")
 set(CMAKE_PREFIX_PATH ${TORCH_LOCATION}/torch/share/cmake/Torch)
+# set(CMAKE_PREFIX_PATH ${CMAKE_CURRENT_SOURCE_DIR}/third_party/pytorch/torch/share/cmake/Torch)   ## develop purpose
+
 find_package(Torch REQUIRED)
 
 # Find fmt library
@@ -108,7 +111,7 @@ endif()
 set(TORCH_KPU_PYTHON_SRC "${CMAKE_CURRENT_SOURCE_DIR}/torch_kpu/python")
 set(TORCH_KPU_INSTALL_DIR "python/torch_kpu")
 
-# 安装整个 torch_kpu/python 目录（递归）
+# Install torch_kpu/python
 install(
     DIRECTORY ${TORCH_KPU_PYTHON_SRC}/
     DESTINATION ${TORCH_KPU_INSTALL_DIR}

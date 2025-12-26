@@ -1,0 +1,44 @@
+BasedOnStyle: LLVM
+
+# 基础缩进
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+
+# 行宽，越小越容易换行
+ColumnLimit: 100
+
+# 花括号风格（重点）
+BreakBeforeBraces: Allman
+
+# 控制短语句不要挤在一行
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
+AllowShortBlocksOnASingleLine: false
+
+# if / for / while 后面强制换行
+BraceWrapping:
+  AfterControlStatement: true
+  AfterFunction: true
+  AfterClass: true
+  AfterStruct: true
+  AfterNamespace: true
+
+# 参数、模板、调用不要挤
+BinPackArguments: false
+BinPackParameters: false
+
+# 对齐更“散”，避免拥挤
+AlignAfterOpenBracket: AlwaysBreak
+
+# 空行策略
+KeepEmptyLinesAtTheStartOfBlocks: true
+MaxEmptyLinesToKeep: 2
+
+# 指针和引用
+PointerAlignment: Left
+ReferenceAlignment: Left
+
+# include 排序
+SortIncludes: true

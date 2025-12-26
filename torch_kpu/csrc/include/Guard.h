@@ -1,29 +1,35 @@
 #pragma once
-#include <torch/version.h>
+#include "GuardImpl.h"
 #include <c10/core/impl/DeviceGuardImplInterface.h>
 #include <c10/core/impl/InlineDeviceGuard.h>
-#include "GuardImpl.h"
+#include <torch/version.h>
 
-namespace at_torch {
+namespace at_torch
+{
 
-    struct KPUGuard {
+struct KPUGuard
+{
     //  No default constructor; see Note [Omitted default constructor from RAII]
     explicit KPUGuard() = delete;
 
     //  Set the current KPU device to the passed device index.
-    explicit KPUGuard(c10::DeviceIndex device_index) : guard_(device_index) {}
+    explicit KPUGuard(c10::DeviceIndex device_index) : guard_(device_index)
+    {
+    }
 
     //  Sets the current KPU device to the passed device.  Errors if the passed
     //  device is not a KPU device.
-    explicit KPUGuard(c10::Device device) : guard_(device) {}
+    explicit KPUGuard(c10::Device device) : guard_(device)
+    {
+    }
 
     // Copy is not allowed
-    KPUGuard(const KPUGuard &) = delete;
-    KPUGuard &operator = (const KPUGuard &) = delete;
+    KPUGuard(const KPUGuard&) = delete;
+    KPUGuard& operator=(const KPUGuard&) = delete;
 
     // Move is not allowed (there is no uninitialized state)
-    KPUGuard(KPUGuard &&other) = delete;
-    KPUGuard &operator = (KPUGuard &&other) = delete;
+    KPUGuard(KPUGuard&& other) = delete;
+    KPUGuard& operator=(KPUGuard&& other) = delete;
 
     //  Sets the KPU device to the given device.  Errors if the given device
     //  is not a KPU device.
@@ -59,10 +65,9 @@ namespace at_torch {
         return guard_.current_device();
     }
 
-private:
+  private:
     //  The guard for the current device.
     c10::impl::InlineDeviceGuard<at_torch::KPUGuardImpl> guard_;
 };
 
-
-}
+} // namespace at_torch

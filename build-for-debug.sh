@@ -6,6 +6,35 @@ PROJECT_DIR=$(pwd)
 # clean screen
 clear
 
+# check sudo permission
+if [ "$EUID" -eq 0 ]; then
+    SUDO_ER=""
+else
+    SUDO_ER=sudo
+fi
+
+# install packages
+echo ">> [INFO]: Install system packages ..."
+PACKAGES=(
+  ocl-icd-opencl-dev
+  opencl-headers
+  libfmt-dev
+  pybind11-dev
+)
+
+for pkg in "${PACKAGES[@]}"; do
+  if dpkg -s "$pkg" >/dev/null 2>&1; then
+    echo ">> [INFO]: $pkg already installed"
+  else
+    echo ">> [INFO]: $pkg not installed, installing..."
+    ${SUDO_ER} apt-get install -y "$pkg"
+  fi
+done
+echo ">> [INFO]: Install Python packages ..."
+pip3 install -r requirements.txt
+echo ">> [INFO]: All packages installed."
+
+
 # create folder
 build_folder=build_debug
 echo ">> [INFO]: Refresh build folder '${build_folder}' ..."
@@ -69,8 +98,30 @@ make -j16
 echo ">> [INFO]: Start installing ..."
 make install
 
-# set temporary variable
+# write environment variables into '~/.torch_kpu_env' file
 cd ${PROJECT_DIR}
 echo ">> [INFO]: Set 'PYTHONPATH' path '${PROJECT_DIR}/${install_folder}/python' ..."
-export PYTHONPATH=${PROJECT_DIR}/${install_folder}/python:$PYTHONPATH
+LINE="export PYTHONPATH=${PROJECT_DIR}/${install_folder}/python:\$PYTHONPATH"
+TORCH_RC="${HOME}/.torch_kpu_env"
+## check if '${TORCH_RC}' file exists
+if [ ! -f "${TORCH_RC}" ]; then
+    touch "${TORCH_RC}"
+fi
+
+## write 'PYTHONPATH' into '${TORCH_RC}' file
+if ! grep -Fxq "$LINE" "$TORCH_RC"; then
+    echo "$LINE" >> "$TORCH_RC"
+    echo ">> [INFO]: 'PYTHONPATH' added to '${TORCH_RC}'"
+fi
+
+## append sourcing line into '~/.bashrc' file
+BASHRC="${HOME}/.bashrc"
+LINE='[ -f ~/.torch_kpu_env ] && source ~/.torch_kpu_env'
+if ! grep -Fxq "$LINE" "$BASHRC"; then
+    echo "" >> "$BASHRC"
+    echo "# torch_kpu environment" >> "$BASHRC"
+    echo "$LINE" >> "$BASHRC"
+fi
+echo ">> [INFO]: Please run 'source ~/.bashrc' to update environment variables."
+
 echo ">> [INFO]: All finished."

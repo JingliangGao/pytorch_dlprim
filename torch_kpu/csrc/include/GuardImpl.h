@@ -1,15 +1,18 @@
 #pragma once
-#include <torch/version.h>
-#include <c10/core/impl/DeviceGuardImplInterface.h>
 #include "CLTensor.h"
 #include "HooksInterface.h"
+#include <c10/core/impl/DeviceGuardImplInterface.h>
+#include <torch/version.h>
 
+namespace at_torch
+{
 
-namespace at_torch {
-
-class KPUGuardImpl final: public c10::impl::DeviceGuardImplInterface {
-public:
-    KPUGuardImpl() { }
+class KPUGuardImpl final : public c10::impl::DeviceGuardImplInterface
+{
+  public:
+    KPUGuardImpl()
+    {
+    }
     explicit KPUGuardImpl(c10::DeviceType t);
 
     /* device management */
@@ -24,14 +27,12 @@ public:
     c10::Stream getStream(c10::Device d) const noexcept override;
     c10::Stream getDefaultStream(c10::Device d) const override;
     c10::Stream exchangeStream(c10::Stream) const noexcept override;
-    bool queryStream(const c10::Stream& ) const override;
+    bool queryStream(const c10::Stream&) const override;
     void synchronizeStream(const c10::Stream& stream) const override;
 
-
-private:
-
+  private:
     static thread_local c10::Device current_device_;
     static thread_local c10::Stream current_stream_;
 };
 
-}
+} // namespace at_torch
