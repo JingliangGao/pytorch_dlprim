@@ -13,6 +13,12 @@ else
     SUDO_ER=sudo
 fi
 
+# check ICD vendor
+if [ ! -d /etc/OpenCL/vendors ]; then
+    echo ">> [ERROR]: OpenCL ICD vendor folder '/etc/OpenCL/vendors' not found, please install OpenCL runtime first, exit ..."
+    exit 1
+fi
+
 # install packages
 echo ">> [INFO]: Install system packages ..."
 PACKAGES=(
@@ -31,9 +37,10 @@ for pkg in "${PACKAGES[@]}"; do
   fi
 done
 echo ">> [INFO]: Install Python packages ..."
+pip3 install torch --index-url https://download.pytorch.org/whl/cpu
+pip3 install torchvision --index-url https://download.pytorch.org/whl/cpu
 pip3 install -r requirements.txt
 echo ">> [INFO]: All packages installed."
-
 
 # create folder
 build_folder=build_debug
