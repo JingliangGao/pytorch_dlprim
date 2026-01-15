@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import io
 import os
-from setuptools import setup, find_packages
+from setuptools import setup, find_packages, Distribution
 
 
 def read_file(fname):
@@ -58,4 +58,13 @@ setup(
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
     ],
+    # Mark this distribution as containing extension modules / non-pure python
+    # so that builders will produce a platform-specific wheel (not py3-none-any).
+    # This ensures the wheel filename will include python/abi and platform tags
+    # (for example: cp310-<abi>-manylinux_x86_64.whl).
+    distclass=type('BinaryDistribution', (Distribution,), {
+        'has_ext_modules': lambda self: True
+    }),
+    # Optional: set platforms metadata (informational)
+    platforms=['manylinux_x86_64'],
 )
