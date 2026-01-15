@@ -27,15 +27,28 @@ except Exception:
 setup(
     name="torch_kpu",
     version=version,
-    description="PyTorch OpenCL backend (torch_kpu) from pytorch_dlprim",
+    description="PyTorch OpenCL backend (torch_kpu)",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    packages=find_packages(where="torch_kpu/python"),
-    package_dir={"": "torch_kpu/python"},
+    # Package from the compiled install tree so native libraries (libtorch_kpu.so)
+    # under dl_install/python/torch_kpu are included in the wheel. This avoids
+    # requiring the user to set PYTHONPATH to dl_install at runtime.
+    packages=find_packages(where="dl_install/python"),
+    package_dir={"": "dl_install/python"},
     include_package_data=True,
     zip_safe=False,
     python_requires=">=3.8",
     install_requires=[],
+    # Ensure compiled shared object is included in the package data. Add any
+    # additional patterns if you have other binary assets under the package.
+    package_data={
+        # top-level shared lib
+        "torch_kpu": ["*.so", "*.so.*", "*.json"],
+        # common subfolders that may contain binary/data files
+        "torch_kpu.core": ["*", "*/*"],
+        "torch_kpu.testing": ["*", "*/*"],
+        "torch_kpu.utils": ["*", "*/*"],
+    },
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
