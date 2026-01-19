@@ -28,11 +28,11 @@ def patch__post_init__(self) -> None:
 # func: parse NativeFunction from yaml
 @staticmethod
 def patch__from_yaml(
-    ei: dict[str, object],
+    ei: Dict[str, object],
     loc: Location,
-    valid_tags: set[str],
-    ignore_keys: set[DispatchKey] | None = None,
-) -> tuple[NativeFunction, dict[DispatchKey, dict[OperatorName, BackendMetadata]]]:
+    valid_tags: Set[str],
+    ignore_keys: Optional[Set[DispatchKey]] = None,
+) -> Tuple[NativeFunction, Dict[DispatchKey, Dict[OperatorName, BackendMetadata]]]:
     """
     Parse a NativeFunction from a dictionary as directly parsed
     from native_functions.yaml

@@ -102,7 +102,7 @@ else
 fi
 
 echo ">> [INFO]: Start building ..."
-make -j16
+make -j8
 echo ">> [INFO]: Start installing ..."
 make install
 
