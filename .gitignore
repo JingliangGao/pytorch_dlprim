@@ -1,4 +1,3 @@
-third_party/dlprimitives/
 third_party/op-plugin/op_plugin/generate/*
 build/*
 build_debug/*

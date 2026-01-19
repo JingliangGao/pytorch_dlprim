@@ -1,5 +1,3 @@
-import torchgen
-from torchgen.utils import NamespaceHelper
 
 from torchgen.model import (
     BackendMetadata,
@@ -18,12 +16,16 @@ from torchgen.model import (
     UFUNC_DISPATCH_KEYS,
     Precompute,
 )
+from torchgen.utils import NamespaceHelper
+from typing import Dict, Set, Tuple, Optional
 
+import torchgen
 
+# func: do not do anything in __post_init__
 def patch__post_init__(self) -> None:
     pass
 
-
+# func: parse NativeFunction from yaml
 @staticmethod
 def patch__from_yaml(
     ei: dict[str, object],
@@ -385,7 +387,7 @@ def patch__from_yaml(
         backend_metadata,
     )
 
-
+# func: apply all patches
 def apply_codegen_patches():
     torchgen.model.NativeFunction.__post_init__ = patch__post_init__
     torchgen.model.NativeFunction.from_yaml = patch__from_yaml

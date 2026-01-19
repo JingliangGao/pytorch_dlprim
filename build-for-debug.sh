@@ -26,6 +26,7 @@ PACKAGES=(
   opencl-headers
   libfmt-dev
   pybind11-dev
+  python3-dev
 )
 
 for pkg in "${PACKAGES[@]}"; do
