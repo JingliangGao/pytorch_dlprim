@@ -1,253 +1,256 @@
+#!/usr/bin/env python3
+"""
+Custom setup.py for pytorch_dlprim (torch_kpu).
 
+This script mirrors the project's `build-for-debug.sh` behavior and a
+Huawei-style setup.py: it will (when building) invoke the local CMake-based
+build to produce native libraries into `build/packages/torch_kpu`, then
+package the resulting Python package and shared libraries into a wheel.
 
-from distutils.version import LooseVersion
-from setuptools import setup, distutils, Extension
+The script provides custom build_clib / build_ext / bdist_wheel commands to
+coordinate CMake/Make, include generated bindings, and optionally run
+`auditwheel` when building manylinux wheels.
+
+Run examples:
+  python3 setup.py build_clib build_ext bdist_wheel
+  python3 setup.py install
+"""
 
 import os
-import platform
-import subprocess
 import sys
-import traceback
+import stat
+import subprocess
+import glob
+import shutil
+from pathlib import Path
+from setuptools import setup, find_packages
+from setuptools.command.build_clib import build_clib
+from setuptools.command.build_ext import build_ext
+from setuptools.command.build_py import build_py
+from setuptools.command.install import install
+from setuptools.command.egg_info import egg_info
+from wheel.bdist_wheel import bdist_wheel
 
-# set necessary variables
 BASE_DIR = os.path.dirname(os.path.realpath(__file__))
-BUILD_PERMISSION = stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR | stat.S_IRGRP | stat.S_IXGRP
+BUILD_DIR = os.path.join(BASE_DIR, 'build')
+PACKAGE_BUILD_DIR = os.path.join(BUILD_DIR, 'packages')
+TORCH_PKG_NAME = os.environ.get('TORCH_KPU_PKG_NAME', 'torch_kpu')
 
-# get version info
-with open(os.path.join(BASE_DIR, "version.txt")) as version_f:
-    VERSION = version_f.read().strip()
 
-# get README.md content
-readme = os.path.join(BASE_DIR, "README.md")
-if not os.path.exists(readme):
-    raise FileNotFoundError("Unable to find 'README.md'")
-with open(readme, encoding="utf-8") as fdesc:
-    readme_context = fdesc.read()
+def read_text(path):
+    with open(path, 'r', encoding='utf-8') as f:
+        return f.read().strip()
 
-# PyPI classifier label
-classifier_label = [
-    "Development Status :: 5 - Production/Stable",
-    "Intended Audience :: Developers",
-    "License :: OSI Approved :: BSD License",
-    "Operating System :: POSIX :: Linux",
-    "Topic :: Scientific/Engineering",
-    "Topic :: Scientific/Engineering :: Mathematics",
-    "Topic :: Scientific/Engineering :: Artificial Intelligence",
-    "Topic :: Software Development",
-    "Topic :: Software Development :: Libraries",
-    "Topic :: Software Development :: Libraries :: Python Modules",
-    "Programming Language :: Python",
-    "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-]
 
-# function to get pytorch installation dir
-def get_pytorch_dir():
+VERSION = '0.0.0'
+version_file = os.path.join(BASE_DIR, 'version.txt')
+if os.path.exists(version_file):
+    VERSION = read_text(version_file)
+
+
+def generate_version_py():
+    # write version into package build dir; but when running in 'develop'
+    # mode write into the source python/ package so editable installs can
+    # import the version without running a full build.
+    is_develop = any(a in sys.argv for a in ('develop', 'egg_info', 'bdist_egg'))
+    if is_develop:
+        pkg_base = Path(BASE_DIR) / 'python' / TORCH_PKG_NAME
+    else:
+        pkg_base = Path(PACKAGE_BUILD_DIR) / TORCH_PKG_NAME
+    pkg_version_py = pkg_base / 'version.py'
+    pkg_version_py.parent.mkdir(parents=True, exist_ok=True)
+    sha = 'unknown'
     try:
-        import torch
-        return os.path.dirname(os.path.realpath(torch.__file__))
+        sha = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=BASE_DIR).decode().strip()
     except Exception:
-        _, _, exc_traceback = sys.exc_info()
-        frame_summary = traceback.extract_tb(exc_traceback)[-1]
-        return os.path.dirname(frame_summary.filename)
+        pass
+    full_version = VERSION
+    if os.getenv('BUILD_WITHOUT_SHA') is None and sha:
+        full_version = full_version + '+git' + sha[:7]
+    pkg_version_py.write_text("__version__ = '{v}'\ngit_version = '{g}'\n".format(v=full_version, g=sha))
+    return full_version
 
-# function to get pytorch include and lib dirs
-def CppExtension(name, sources, *args, **kwargs):
-    pytorch_dir = get_pytorch_dir()
-    temp_include_dirs = kwargs.get('include_dirs', [])
-    temp_include_dirs.append(os.path.join(pytorch_dir, 'include'))
-    temp_include_dirs.append(os.path.join(pytorch_dir, 'include/torch/csrc/api/include'))
-    kwargs['include_dirs'] = temp_include_dirs
 
-    temp_library_dirs = kwargs.get('library_dirs', [])
-    temp_library_dirs.append(os.path.join(pytorch_dir, 'lib'))
-    kwargs['library_dirs'] = temp_library_dirs
-
-    libraries = kwargs.get('libraries', [])
-    libraries.append('c10')
-    libraries.append('torch')
-    libraries.append('torch_cpu')
-    libraries.append('torch_python')
-    kwargs['libraries'] = libraries
-    kwargs['language'] = 'c++'
-    return Extension(name, sources, *args, **kwargs)
-
-# Setup include directories folders.
-include_directories = [
-    BASE_DIR,
-    os.path.join(BASE_DIR, 'torch_kpu/csrc/include'),
-    os.path.join(BASE_DIR, 'third_party/dlprimitives/include'),
-    os.path.join(BASE_DIR, 'third_party/op-plugin/op_plugin/generate'),
-    os.path.join(BASE_DIR, 'third_party/op-plugin/op_plugin/utils')
-]
-
-# extra link args
-extra_compile_args = [
-    '-std=c++17',
-    '-Wno-sign-compare',
-    '-Wno-deprecated-declarations',
-    '-Wno-return-type'
-]
-extra_link_args = []
-DEBUG = (os.getenv('DEBUG', default='').upper() in ['ON', '1', 'YES', 'TRUE', 'Y'])
-if DEBUG:
-    extra_compile_args += ['-O0', '-g']
-    extra_link_args += ['-O0', '-g', '-Wl,-z,now']
-else:
-    extra_compile_args += ['-DNDEBUG']
-    extra_link_args += ['-Wl,-z,now']
-
-# change to use cxx11.abi in default since 2.7
-USE_CXX11_ABI = True
-if os.environ.get("_GLIBCXX_USE_CXX11_ABI") is not None and os.environ.get("_GLIBCXX_USE_CXX11_ABI") == "0":
-    USE_CXX11_ABI = False
-
-# func: get build type
-def which(thefile):
-    path = os.environ.get("PATH", os.defpath).split(os.pathsep)
+def which(exe_name):
+    path = os.environ.get('PATH', os.defpath).split(os.pathsep)
     for d in path:
-        fname = os.path.join(d, thefile)
-        fnames = [fname]
-        if sys.platform == 'win32':
-            exts = os.environ.get('PATHEXT', '').split(os.pathsep)
-            fnames += [fname + ext for ext in exts]
-        for name in fnames:
-            if os.access(name, os.F_OK | os.X_OK) and not os.path.isdir(name):
-                return name
+        candidate = os.path.join(d, exe_name)
+        if os.access(candidate, os.F_OK | os.X_OK) and not os.path.isdir(candidate):
+            return candidate
     return None
 
-# func: get cmake command
-def get_cmake_command():
-    def _get_version(cmd):
-        for line in subprocess.check_output([cmd, '--version']).decode('utf-8').split('\n'):
-            if 'version' in line:
-                return LooseVersion(line.strip().split(' ')[2])
-        raise RuntimeError('no version found')
-    "Returns cmake command."
-    cmake_command = 'cmake'
-    if platform.system() == 'Windows':
-        return cmake_command
-    cmake3 = which('cmake3')
-    cmake = which('cmake')
-    if cmake3 is not None and _get_version(cmake3) >= LooseVersion("3.18.0"):
-        cmake_command = 'cmake3'
-        return cmake_command
-    elif cmake is not None and _get_version(cmake) >= LooseVersion("3.18.0"):
-        return cmake_command
-    else:
-        raise RuntimeError('no cmake or cmake3 with version >= 3.18.0 found')
 
-# class: build cpp library
-class CPPLibBuild(build_clib, object):
+def get_cmake_command():
+    for candidate in ('cmake3', 'cmake'):
+        cmd = which(candidate)
+        if cmd:
+            try:
+                out = subprocess.check_output([cmd, '--version']).decode()
+                if 'cmake' in out.lower():
+                    return cmd
+            except Exception:
+                continue
+    raise RuntimeError('cmake not found')
+
+
+def get_torch_cmake_prefix():
+    try:
+        import torch
+        return os.path.dirname(os.path.realpath(torch.__file__)) + '/share/cmake/Torch'
+    except Exception:
+        raise RuntimeError('[ERROR] Failed to find torch cmake prefix')
+    return None
+
+
+class CPPLibBuild(build_clib):
+    """Build native libs using CMake (mirrors build-for-debug.sh behaviour)."""
+
     def run(self):
         cmake = get_cmake_command()
+        build_dir = os.path.join(BASE_DIR, 'build_debug') if os.getenv('DEBUG', '0') in ('1', 'ON', 'TRUE') else os.path.join(BASE_DIR, 'build')
+        install_prefix = os.path.join(BASE_DIR, 'build', 'packages', TORCH_PKG_NAME)
+        os.makedirs(build_dir, exist_ok=True)
+        os.makedirs(install_prefix, exist_ok=True)
 
-        if cmake is None:
-            raise RuntimeError(
-                "CMake must be installed to build the following extensions: " +
-                ", ".join(e.name for e in self.extensions))
-        self.cmake = cmake
-
-        build_dir = os.path.join(BASE_DIR, "build")
-        build_type_dir = os.path.join(build_dir)
-        output_lib_path = os.path.join(build_type_dir, "packages/torch_npu/lib")
-        os.makedirs(build_type_dir, exist_ok=True)
-        os.chmod(build_type_dir, mode=BUILD_PERMISSION)
-        os.makedirs(output_lib_path, exist_ok=True)
-        self.build_lib = os.path.relpath(os.path.join(build_dir, "packages/torch_npu"))
-        self.build_temp = os.path.relpath(build_type_dir)
+        torch_cmake = get_torch_cmake_prefix() or ''
+        print('Using torch cmake prefix:', torch_cmake)
 
         cmake_args = [
-            '-DCMAKE_BUILD_TYPE=' + get_build_type(),
-            '-DCMAKE_INSTALL_PREFIX=' + os.path.realpath(output_lib_path),
-            '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + os.path.realpath(output_lib_path),
-            '-DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=' + os.path.realpath(output_lib_path),
-            '-DTORCHNPU_INSTALL_LIBDIR=' + os.path.realpath(output_lib_path),
-            '-DPYTHON_INCLUDE_DIR=' + get_paths().get('include'),
-            '-DTORCH_VERSION=' + VERSION,
-            '-DPYTORCH_INSTALL_DIR=' + get_pytorch_dir()]
+            '-DCMAKE_INSTALL_PREFIX=' + os.path.realpath(install_prefix),
+            '-DCMAKE_POLICY_VERSION_MINIMUM=3.5',
+            '-DOCL_PATH=/usr/include',
+        ]
 
-        if DISABLE_TORCHAIR == 'FALSE':
-            if check_torchair_valid(BASE_DIR):
-                cmake_args.append('-DBUILD_TORCHAIR=on')
-                torchair_install_prefix = os.path.join(build_type_dir, "packages/torch_npu/dynamo/torchair")
-                cmake_args.append(f'-DTORCHAIR_INSTALL_PREFIX={torchair_install_prefix}')
-                cmake_args.append(f'-DTORCHAIR_TARGET_PYTHON={sys.executable}')
+        if torch_cmake:
+            cmake_args.insert(0, '-DCMAKE_PREFIX_PATH=' + torch_cmake)
 
-        if DISABLE_RPC == 'FALSE':
-            if check_tensorpipe_valid(BASE_DIR):
-                cmake_args.append('-DBUILD_TENSORPIPE=on')
-        
-        if ENABLE_LTO == "TRUE":
-            cmake_args.append('-DENABLE_LTO=on')
-        if PGO_MODE != 0:
-            cmake_args.append('-DPGO_MODE=' + str(PGO_MODE))
-        
-        if USE_CXX11_ABI:
-            cmake_args.append('-DGLIBCXX_USE_CXX11_ABI=1')
+        python_root = sys.prefix
+        cmake_args += [
+            '-DPython3_ROOT_DIR=' + python_root,
+            "-DPython3_FIND_STRATEGY=LOCATION",
+            "-DPython3_FIND_REGISTRY=NEVER",
+        ]
 
-        if os.getenv('_ABI_VERSION') is not None:
-            cmake_args.append('-DABI_VERSION=' + os.getenv('_ABI_VERSION'))
+        op_plugin_script = os.path.join(BASE_DIR, 'third_party', 'op-plugin', 'build-for-debug.sh')
+        if os.path.exists(op_plugin_script):
+            try:
+                subprocess.check_call(['bash', op_plugin_script], cwd=BASE_DIR)
+            except Exception:
+                print('Warning: op-plugin build script failed', file=sys.stderr)
 
-        max_jobs = os.getenv("MAX_JOBS", str(multiprocessing.cpu_count()))
-        build_args = ['-j', max_jobs]
+        call = [cmake, BASE_DIR] + cmake_args
+        print('Running cmake:', ' '.join(call))
+        subprocess.check_call(call, cwd=build_dir, env=os.environ)
 
-        subprocess.check_call([self.cmake, BASE_DIR] + cmake_args, cwd=build_type_dir, env=os.environ)
-        for base_dir, dirs, files in os.walk(build_type_dir):
-            for dir_name in dirs:
-                dir_path = os.path.join(base_dir, dir_name)
-                os.chmod(dir_path, mode=BUILD_PERMISSION)
-            for file_name in files:
-                file_path = os.path.join(base_dir, file_name)
-                os.chmod(file_path, mode=BUILD_PERMISSION)
+        jobs = os.environ.get('MAX_JOBS', str(os.cpu_count() or 4))
+        make_cmd = ['make', '-j16']
+        print('Running make:', ' '.join(make_cmd))
+        subprocess.check_call(make_cmd, cwd=build_dir, env=os.environ)
 
-        subprocess.check_call(['make'] + build_args, cwd=build_type_dir, env=os.environ)
+        subprocess.check_call(['make', 'install'], cwd=build_dir, env=os.environ)
 
-# setup function
+
+class BuildExt(build_ext):
+    def run(self):
+        self.run_command('build_clib')
+        super().run()
+
+
+class PythonPackageBuild(build_py):
+    def run(self):
+        # copy python sources to package build dir so wheel includes them
+        src_py = os.path.join(BASE_DIR, 'python')
+        target_base = os.path.join(PACKAGE_BUILD_DIR, TORCH_PKG_NAME)
+        if os.path.exists(src_py):
+            for src in glob.glob(os.path.join(src_py, '**', '*'), recursive=True):
+                if os.path.isfile(src):
+                    rel = os.path.relpath(src, src_py)
+                    dst = os.path.join(target_base, rel)
+                    os.makedirs(os.path.dirname(dst), exist_ok=True)
+                    shutil.copy2(src, dst)
+        # also copy dl_install/python if present
+        dl_src = os.path.join(BASE_DIR, 'dl_install', 'python', TORCH_PKG_NAME)
+        if os.path.exists(dl_src):
+            for src in glob.glob(os.path.join(dl_src, '**', '*'), recursive=True):
+                if os.path.isfile(src):
+                    rel = os.path.relpath(src, dl_src)
+                    dst = os.path.join(target_base, rel)
+                    os.makedirs(os.path.dirname(dst), exist_ok=True)
+                    shutil.copy2(src, dst)
+        return super().run()
+
+
+class BdistWheel(bdist_wheel):
+    def run(self):
+        bdist_wheel.run(self)
+        is_manylinux = os.environ.get('AUDITWHEEL_PLAT') is not None
+        if is_manylinux:
+            whl = glob.glob(os.path.join(self.dist_dir, '*linux*.whl'))
+            if whl:
+                whl = whl[0]
+                audit_cmd = ['auditwheel', 'repair', '-w', self.dist_dir, whl]
+                excludes = ['libgomp.so.1']
+                for e in excludes:
+                    audit_cmd += ['--exclude', e]
+                try:
+                    subprocess.check_call(audit_cmd)
+                finally:
+                    try:
+                        os.remove(whl)
+                    except Exception:
+                        pass
+
+
+class InstallCmd(install):
+    def finalize_options(self):
+        self.build_lib = os.path.relpath(PACKAGE_BUILD_DIR)
+        return super().finalize_options()
+
+
+generate_version_py()
+
+# Determine packaging sources: for editable/develop installs we should point
+# package_dir to the source `python/` tree to avoid setuptools complaining
+# about inconsistent installation directories. For bdist_wheel / normal
+# packaging we use the `build/packages` tree produced by the CMake build.
+is_develop_cmd = any(a in sys.argv for a in ('develop', 'egg_info', 'bdist_egg'))
+if is_develop_cmd:
+    packages = find_packages(where='python')
+    package_dir = {'': 'python'}
+else:
+    # The CMake install step places python files under
+    #   build/packages/<pkg_name>/python/<pkg_name>/...
+    # We must point setuptools at that 'python' subdirectory so the wheel
+    # contains a top-level 'torch_kpu' package (not 'torch_kpu/python/torch_kpu').
+    package_source_dir = os.path.join(PACKAGE_BUILD_DIR, TORCH_PKG_NAME, 'python')
+    if not os.path.exists(package_source_dir):
+        # fallback to previous layout
+        package_source_dir = os.path.join(PACKAGE_BUILD_DIR, 'python')
+    # find packages within that python subdir
+    packages = find_packages(where=package_source_dir)
+    # setuptools requires package_dir values to be relative POSIX paths
+    rel_pkg_build = os.path.relpath(package_source_dir, BASE_DIR).replace(os.sep, '/')
+    package_dir = {'': rel_pkg_build}
+
 setup(
-    name='torch_kpu',
+    name=TORCH_PKG_NAME,
     version=VERSION,
-    description='KPU bridge for PyTorch',
-    long_description=readme_context,
-    long_description_content_type="text/markdown",
-    license="BSD License",
-    classifiers=classifier_label,
-    packages=["torch_kpu"],
-    libraries=[('torch_kpu', {'sources': list()})],
-    package_dir={'': os.path.relpath(os.path.join(BASE_DIR, "build/packages"))},
-    ext_modules=[
-            CppExtension(
-                'torch_kpu._C',
-                sources=["torch_kpu/csrc/Pybind.cpp"],
-                libraries=["torch_kpu"],
-                include_dirs=include_directories,
-                extra_compile_args=extra_compile_args + ['-fstack-protector-all'] + ['-D__FILENAME__=\"Pybind.cpp\"'],
-                library_dirs=["lib"],
-                extra_link_args=extra_link_args + ['-Wl,-rpath,$ORIGIN/lib', '-Wl,-Bsymbolic-functions'],
-                define_macros=[('_GLIBCXX_USE_CXX11_ABI', '1' if USE_CXX11_ABI else '0'), ('GLIBCXX_USE_CXX11_ABI', '1' if USE_CXX11_ABI else '0')]
-            ),
-    ],
-    extras_require={
-    },
+    description='PyTorch OpenCL backend (torch_kpu) - built from source',
+    long_description=open(os.path.join(BASE_DIR, 'README.md'), 'r', encoding='utf-8').read() if os.path.exists(os.path.join(BASE_DIR, 'README.md')) else '',
+    long_description_content_type='text/markdown',
+    packages=packages,
+    package_dir=package_dir,
+    include_package_data=True,
+    zip_safe=False,
+    python_requires='>=3.8',
     package_data={
-        'torch_kpu': [
-            '*.so', 'lib/*.so*',
-        ],
+        TORCH_PKG_NAME: ['*.so', 'lib/*.so*', '*.py'],
     },
     cmdclass={
         'build_clib': CPPLibBuild,
-        'build_ext': Build,
+        'build_ext': BuildExt,
         'build_py': PythonPackageBuild,
-        'bdist_wheel': BdistWheelBuild,
+        'bdist_wheel': BdistWheel,
         'install': InstallCmd,
-        'clean': Clean
     },
-    # entry_points={
-    #     'torch.backends': [
-    #         'torch_kpu = torch_kpu:_autoload',
-    #     ],
-    # }
 )

@@ -17,10 +17,19 @@ pytorch_dlprim is tested on following devices:
 
 
 ## Build Project
+1. clone code
 ```shell
 git clone --recursive https://github.com/JingliangGao/pytorch_dlprim.git
 cd pytorch_dlprim && git checkout dev-opencl
+```
+2. (developer) build and install
+```shell
 chmod +x build-for-debug.sh && ./build-for-debug.sh
+```
+
+3. (user) build and install
+```shell
+chmod +x build-for-release.sh && ./build-for-release.sh
 ```
 
 ## Examples
