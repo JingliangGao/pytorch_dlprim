@@ -25,11 +25,13 @@ cd pytorch_dlprim && git checkout dev-opencl
 2. (developer) build and install
 ```shell
 chmod +x build-for-debug.sh && ./build-for-debug.sh
+export PYTHONPATH=$(pwd)/dl_install/python
 ```
 
 3. (user) build and install
 ```shell
 chmod +x build-for-release.sh && ./build-for-release.sh
+pip3 install dist/*.whl
 ```
 
 ## Examples

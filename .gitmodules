@@ -1,5 +1,5 @@
 [submodule "third_party/dlprimitives"]
-	ignore = dirty
+	ignore = all
 	path = third_party/dlprimitives
 	url = https://github.com/JingliangGao/dlprimitives.git
 	branch = dev-opencl
