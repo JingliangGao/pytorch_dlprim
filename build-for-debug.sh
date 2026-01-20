@@ -44,7 +44,7 @@ pip3 install -r requirements.txt
 echo ">> [INFO]: All packages installed."
 
 # create folder
-build_folder=build_debug
+build_folder=build
 echo ">> [INFO]: Refresh build folder '${build_folder}' ..."
 if [ -d ${build_folder} ]; then
     rm -rf ${build_folder}
