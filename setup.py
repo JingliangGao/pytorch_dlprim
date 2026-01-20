@@ -1,9 +1,11 @@
+import glob
 import os
+import platform
+import shutil
 import sys
 import stat
 import subprocess
-import glob
-import shutil
+
 from pathlib import Path
 from setuptools import setup, find_packages
 from setuptools.command.build_clib import build_clib
@@ -108,11 +110,17 @@ class BdistWheel(bdist_wheel):
                         os.remove(whl)
                     except Exception:
                         pass
+    
+    def finalize_options(self):
+        super().finalize_options()
+        self.python_tag = f"cp{sys.version_info.major}{sys.version_info.minor}"
+        arch = platform.machine()  
+        self.plat_name = f"linux_{arch}"
+        self.plat_name_supplied = True
 
 
 class InstallCmd(install):
     def finalize_options(self):
-        # self.build_lib = os.path.join(PACKAGE_BUILD_DIR, TORCH_PKG_NAME)
         return super().finalize_options()
 
 class EggInfoCmd(egg_info):
@@ -126,8 +134,6 @@ class EggInfoCmd(egg_info):
 
 packages = find_packages(where='dl_install/python')
 package_dir = {'': 'dl_install/python'}
-print("Packages found:", packages)
-
 
 setup(
     name=TORCH_PKG_NAME,
@@ -140,6 +146,9 @@ setup(
     include_package_data=True,
     zip_safe=False,
     python_requires='>=3.8',
+    install_requires=[
+        "torch==2.9.1+cpu",        
+    ],
     package_data={
         TORCH_PKG_NAME: ['*.so', 'lib/*.so*', '*.py'],
     },

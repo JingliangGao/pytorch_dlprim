@@ -6,3 +6,4 @@ third_party/op-plugin/codegen/__pycache__/
 examples/data/*
 *.egg-info/*
 dist/*
+*.log
