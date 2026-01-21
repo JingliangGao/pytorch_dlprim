@@ -1,0 +1,7 @@
+#!/bin/bash
+set -e
+
+echo "/usr/local/lib/torch_kpu/python/torch_kpu" > /etc/ld.so.conf.d/torch_kpu.conf
+ldconfig
+
+exit 0

@@ -1,0 +1,12 @@
+#!/bin/bash
+set -e
+
+CONF_FILE="/etc/ld.so.conf.d/torch_kpu.conf"
+
+if [ -f "$CONF_FILE" ]; then
+    rm -f "$CONF_FILE"
+fi
+
+ldconfig
+
+exit 0

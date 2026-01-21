@@ -1,18 +1,13 @@
 # C++ example
 
-## build
-In the project main directory, cmake the project with option `-DBUILD_EXAMPLES` and then make it.
-
-## example
-1. infer_mobilenet
-infer the mnist net
+## install
 ```shell
-python examples/cplus/infer_mobilenet/download_model.py
-./build/debug/examples/cplus/infer_mobilenet
+sudo dpkg -i torch-kpu_0.0.1_x86_64.deb
 ```
 
-2. move_tensor
-move a tensor from CPU to GPU
+## use
 ```shell
-./build/debug/examples/cplus/move_tensor
+cd infer_mobilenet/
+python3 download_model.py   # download data
+chmod +x run_example.sh && ./run_example.sh
 ```

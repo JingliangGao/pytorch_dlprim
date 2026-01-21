@@ -146,9 +146,6 @@ setup(
     include_package_data=True,
     zip_safe=False,
     python_requires='>=3.8',
-    install_requires=[
-        "torch==2.9.1+cpu",        
-    ],
     package_data={
         TORCH_PKG_NAME: ['*.so', 'lib/*.so*', '*.py'],
     },

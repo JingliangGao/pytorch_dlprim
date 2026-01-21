@@ -1,9 +1,11 @@
 third_party/op-plugin/op_plugin/generate/*
 build/*
 build_debug/*
+*/build/*
 dl_install/*
 third_party/op-plugin/codegen/__pycache__/
 examples/data/*
 *.egg-info/*
 dist/*
 *.log
+*.deb
